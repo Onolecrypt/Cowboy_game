@@ -1,0 +1,2621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Retro Solar Rodeo</title>
+
+<style>
+
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        background:
+            radial-gradient(circle at 50% 20%, #343d32, #151915 70%);
+
+        font-family: monospace;
+
+        overflow: hidden;
+    }
+
+    .console {
+        width: min(470px, 96vw);
+
+        padding: 16px;
+
+        background: #d3c64c;
+
+        border: 7px solid #9e9334;
+
+        border-radius: 28px;
+
+        box-shadow:
+            0 12px 0 #0d100d,
+            inset 0 3px 0 #eee477;
+
+        user-select: none;
+    }
+
+    .brand {
+        text-align: center;
+
+        color: #36391f;
+
+        font-size: 18px;
+        font-weight: bold;
+
+        letter-spacing: 4px;
+
+        margin-bottom: 8px;
+    }
+
+    .solar-panel {
+        width: 105px;
+        height: 27px;
+
+        margin: 0 auto 10px;
+
+        border: 3px solid #292f25;
+
+        background:
+            repeating-linear-gradient(
+                90deg,
+                #26332b 0 11px,
+                #536052 11px 13px
+            );
+    }
+
+    .hud {
+        display: flex;
+        justify-content: space-between;
+
+        padding: 7px 12px;
+
+        color: #b8c3a9;
+
+        background: #293128;
+
+        border: 4px solid #1c211b;
+
+        border-bottom: 0;
+
+        font-size: 13px;
+    }
+
+    .screen {
+        position: relative;
+
+        padding: 7px;
+
+        background: #171b17;
+
+        border: 4px solid #111410;
+    }
+
+    canvas {
+        width: 100%;
+        height: auto;
+
+        display: block;
+
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+
+        background: #9da995;
+    }
+
+    .controls {
+        display: flex;
+
+        justify-content: space-between;
+        align-items: center;
+
+        margin-top: 17px;
+
+        padding: 0 8px;
+    }
+
+    .direction-buttons {
+        display: flex;
+        gap: 12px;
+    }
+
+    button {
+        font-family: monospace;
+        font-weight: bold;
+
+        border: 0;
+
+        cursor: pointer;
+
+        touch-action: manipulation;
+
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .direction {
+        width: 57px;
+        height: 45px;
+
+        border-radius: 8px;
+
+        color: #ded56e;
+
+        background: #41462d;
+
+        border: 4px solid #292d21;
+
+        box-shadow: 0 5px 0 #24251d;
+
+        font-size: 20px;
+    }
+
+    .direction:active {
+        transform: translateY(4px);
+
+        box-shadow: 0 1px 0 #24251d;
+    }
+
+    .lasso {
+        width: 112px;
+        height: 58px;
+
+        border-radius: 50%;
+
+        color: white;
+
+        background: #a33c31;
+
+        border: 5px solid #65251e;
+
+        box-shadow: 0 6px 0 #50201b;
+
+        font-size: 14px;
+    }
+
+    .lasso:active {
+        transform: translateY(5px);
+
+        box-shadow: 0 1px 0 #50201b;
+    }
+
+    .hint {
+        margin-top: 11px;
+
+        text-align: center;
+
+        color: #4b4928;
+
+        font-size: 9px;
+
+        letter-spacing: 1px;
+    }
+
+</style>
+</head>
+
+<body>
+
+<div class="console">
+
+    <div class="brand">
+        SOLAR RODEO
+    </div>
+
+    <div class="solar-panel"></div>
+
+    <div class="hud">
+
+        <span>
+            SCORE
+            <span id="score">0000</span>
+        </span>
+
+        <span>
+            HI
+            <span id="highScore">0000</span>
+        </span>
+
+        <span>
+            LV
+            <span id="level">01</span>
+        </span>
+
+    </div>
+
+    <div class="screen">
+
+        <canvas
+            id="game"
+            width="200"
+            height="150">
+        </canvas>
+
+    </div>
+
+    <div class="controls">
+
+        <div class="direction-buttons">
+
+            <button
+                class="direction"
+                id="up">
+                ▲
+            </button>
+
+            <button
+                class="direction"
+                id="down">
+                ▼
+            </button>
+
+        </div>
+
+        <button
+            class="lasso"
+            id="lasso">
+            LASSO
+        </button>
+
+    </div>
+
+    <div class="hint">
+        CATCH THE HERD • RIDE THE SUNSET
+    </div>
+
+</div>
+
+
+<script>
+
+/*
+====================================================
+RETRO SOLAR RODEO
+2D PSEUDO-3D VERSION
+====================================================
+
+Everything is drawn using Canvas.
+
+The game is still 2D.
+
+But objects have DEPTH.
+
+Far objects:
+    small
+    high on screen
+    slow
+
+Near objects:
+    large
+    low on screen
+    fast
+
+This creates the borderline-3D effect.
+====================================================
+*/
+
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+ctx.imageSmoothingEnabled = false;
+
+
+/*
+====================================================
+LCD PALETTE
+====================================================
+*/
+
+const COLORS = {
+
+    sky: "#9da995",
+
+    skyLight: "#b7c0a5",
+
+    mountain: "#71806c",
+
+    mountainDark: "#5c695a",
+
+    ground: "#aeb79e",
+
+    groundDark: "#7c8974",
+
+    dark: "#3f4e3d",
+
+    darker: "#303c30",
+
+    darkest: "#252f27",
+
+    black: "#1c251e"
+};
+
+
+/*
+====================================================
+GAME CONSTANTS
+====================================================
+*/
+
+const WIDTH = 200;
+const HEIGHT = 150;
+
+const HORIZON = 50;
+
+const ROAD_BOTTOM = 150;
+
+
+/*
+====================================================
+GAME STATE
+====================================================
+*/
+
+let score = 0;
+
+let highScore =
+    Number(localStorage.getItem("solarRodeoHighScore")) || 0;
+
+let level = 1;
+
+let gameStarted = false;
+
+let gameOver = false;
+
+let frame = 0;
+
+let worldSpeed = 0.6;
+
+let spawnTimer = 60;
+
+let shake = 0;
+
+let lassoTimer = 0;
+
+let catchFlash = 0;
+
+
+/*
+====================================================
+COWBOY
+====================================================
+*/
+
+const cowboy = {
+
+    lane: 1,
+
+    x: 31,
+
+    depth: 1,
+
+    animation: 0
+
+};
+
+
+/*
+====================================================
+LANES
+====================================================
+
+These aren't fixed Y positions anymore.
+
+The lane position is calculated using perspective.
+
+====================================================
+*/
+
+const lanePositions = [
+    -1,
+    0,
+    1
+];
+
+
+/*
+====================================================
+OBJECT ARRAYS
+====================================================
+*/
+
+let cows = [];
+
+let dust = [];
+
+let particles = [];
+
+let popups = [];
+
+let stars = [];
+
+
+/*
+====================================================
+CREATE STARS
+====================================================
+*/
+
+for (let i = 0; i < 30; i++) {
+
+    stars.push({
+
+        x: Math.random() * WIDTH,
+
+        y: Math.random() * 42,
+
+        size: Math.random() < 0.7 ? 1 : 2
+
+    });
+
+}
+
+
+/*
+====================================================
+HUD
+====================================================
+*/
+
+function updateHUD() {
+
+    document.getElementById("score").textContent =
+        String(score).padStart(4, "0");
+
+    document.getElementById("highScore").textContent =
+        String(highScore).padStart(4, "0");
+
+    document.getElementById("level").textContent =
+        String(level).padStart(2, "0");
+
+}
+
+updateHUD();
+
+
+/*
+====================================================
+PIXEL DRAWING
+====================================================
+*/
+
+function pixel(x, y, width, height, color) {
+
+    ctx.fillStyle = color;
+
+    ctx.fillRect(
+        Math.round(x),
+        Math.round(y),
+        Math.round(width),
+        Math.round(height)
+    );
+
+}
+
+
+/*
+====================================================
+PERSPECTIVE FUNCTIONS
+====================================================
+*/
+
+/*
+depth:
+
+0 = horizon
+
+1 = foreground
+*/
+
+function getDepthY(depth) {
+
+    return HORIZON + depth * 100;
+
+}
+
+
+function getScale(depth) {
+
+    return 0.35 + depth * 0.8;
+
+}
+
+
+/*
+====================================================
+ROAD / DESERT
+====================================================
+*/
+
+function drawGround() {
+
+    pixel(
+        0,
+        HORIZON,
+        WIDTH,
+        HEIGHT - HORIZON,
+        COLORS.ground
+    );
+
+
+    /*
+    Perspective horizontal bands
+    */
+
+    for (let i = 0; i < 8; i++) {
+
+        let depth =
+            i / 8;
+
+        let y =
+            getDepthY(depth);
+
+        pixel(
+            0,
+            y,
+            WIDTH,
+            1,
+            COLORS.groundDark
+        );
+
+    }
+
+
+    /*
+    Perspective road lines
+    */
+
+    let movement =
+        (frame * worldSpeed) % 18;
+
+
+    for (let lane = -1; lane <= 1; lane++) {
+
+        for (let d = 0; d < 1; d += 0.12) {
+
+            let depth =
+                (d + movement / 180) % 1;
+
+            let y =
+                getDepthY(depth);
+
+            let center =
+                WIDTH / 2;
+
+            let spread =
+                depth * 110;
+
+            let x =
+                center + lane * spread;
+
+
+            let lineWidth =
+                1 + depth * 3;
+
+
+            pixel(
+                x,
+                y,
+                lineWidth,
+                2 + depth * 2,
+                COLORS.groundDark
+            );
+
+        }
+
+    }
+
+
+    /*
+    Foreground desert texture
+    */
+
+    for (let i = 0; i < 20; i++) {
+
+        let depth =
+            ((i * 0.083) + frame * 0.003) % 1;
+
+        let y =
+            getDepthY(depth);
+
+        let x =
+            (i * 47 + frame * (depth + 0.2)) % WIDTH;
+
+        pixel(
+            x,
+            y,
+            2 + depth * 3,
+            1,
+            COLORS.groundDark
+        );
+
+    }
+
+}
+
+
+/*
+====================================================
+SKY
+====================================================
+*/
+
+function drawSky() {
+
+    pixel(
+        0,
+        0,
+        WIDTH,
+        HORIZON,
+        COLORS.sky
+    );
+
+
+    /*
+    Retro sun
+    */
+
+    pixel(
+        151,
+        15,
+        15,
+        15,
+        COLORS.skyLight
+    );
+
+    pixel(
+        147,
+        19,
+        23,
+        7,
+        COLORS.skyLight
+    );
+
+    pixel(
+        154,
+        11,
+        8,
+        23,
+        COLORS.skyLight
+    );
+
+
+    /*
+    Clouds
+    */
+
+    drawCloud(
+        30 - (frame * 0.05 % 220),
+        16
+    );
+
+    drawCloud(
+        120 - (frame * 0.025 % 220),
+        27
+    );
+
+
+    /*
+    Distant stars begin appearing
+    */
+
+    if (level >= 4) {
+
+        for (let star of stars) {
+
+            pixel(
+                star.x,
+                star.y,
+                star.size,
+                star.size,
+                COLORS.mountainDark
+            );
+
+        }
+
+    }
+
+}
+
+
+/*
+====================================================
+CLOUD
+====================================================
+*/
+
+function drawCloud(x, y) {
+
+    pixel(x, y, 18, 4, COLORS.skyLight);
+
+    pixel(x + 4, y - 3, 8, 4, COLORS.skyLight);
+
+    pixel(x + 11, y - 2, 6, 3, COLORS.skyLight);
+
+}
+
+
+/*
+====================================================
+MOUNTAINS
+====================================================
+*/
+
+function drawMountains() {
+
+    for (
+        let x = -40;
+        x < WIDTH + 50;
+        x += 45
+    ) {
+
+        let offset =
+            (frame * 0.08) % 45;
+
+        let mx =
+            x - offset;
+
+
+        pixel(
+            mx + 14,
+            29,
+            18,
+            15,
+            COLORS.mountain
+        );
+
+        pixel(
+            mx + 7,
+            37,
+            32,
+            10,
+            COLORS.mountain
+        );
+
+        pixel(
+            mx,
+            43,
+            45,
+            5,
+            COLORS.mountain
+        );
+
+    }
+
+}
+
+
+/*
+====================================================
+CACTUS
+====================================================
+*/
+
+function drawCactus(x, depth) {
+
+    let scale =
+        getScale(depth);
+
+    let y =
+        getDepthY(depth);
+
+    let size =
+        4 * scale;
+
+
+    pixel(
+        x,
+        y - 14 * scale,
+        size,
+        14 * scale,
+        COLORS.dark
+    );
+
+
+    pixel(
+        x - 4 * scale,
+        y - 10 * scale,
+        4 * scale,
+        3 * scale,
+        COLORS.dark
+    );
+
+    pixel(
+        x - 4 * scale,
+        y - 10 * scale,
+        3 * scale,
+        8 * scale,
+        COLORS.dark
+    );
+
+
+    pixel(
+        x + size,
+        y - 7 * scale,
+        4 * scale,
+        3 * scale,
+        COLORS.dark
+    );
+
+    pixel(
+        x + size + 1 * scale,
+        y - 7 * scale,
+        3 * scale,
+        7 * scale,
+        COLORS.dark
+    );
+
+}
+
+
+/*
+====================================================
+WORLD DECORATION
+====================================================
+*/
+
+function drawWorldObjects() {
+
+    /*
+    Distant cacti
+    */
+
+    for (let i = 0; i < 7; i++) {
+
+        let depth =
+            ((i * 0.17 + frame * 0.001) % 0.65);
+
+        let x =
+            (i * 39 - frame * 0.15) % WIDTH;
+
+        if (x < 0) {
+            x += WIDTH;
+        }
+
+        drawCactus(
+            x,
+            depth
+        );
+
+    }
+
+}
+
+
+/*
+====================================================
+COW
+====================================================
+*/
+
+function drawCow(cow) {
+
+    let scale =
+        getScale(cow.depth);
+
+    let y =
+        getDepthY(cow.depth);
+
+    let x =
+        cow.x;
+
+    /*
+    Animation frame
+    */
+
+    let animation =
+        Math.floor(frame / 5) % 4;
+
+
+    let bob =
+        [0, 1, 0, -1][animation] * scale;
+
+    y += bob;
+
+
+    /*
+    Cow dimensions
+    */
+
+    let bodyWidth =
+        16 * scale;
+
+    let bodyHeight =
+        9 * scale;
+
+
+    /*
+    SHADOW
+    */
+
+    pixel(
+        x + 2 * scale,
+        y + 1 * scale,
+        bodyWidth + 3 * scale,
+        Math.max(1, 2 * scale),
+        COLORS.groundDark
+    );
+
+
+    /*
+    LEGS
+    */
+
+    if (animation === 0) {
+
+        pixel(
+            x + 4 * scale,
+            y - 1 * scale,
+            3 * scale,
+            8 * scale,
+            COLORS.dark
+        );
+
+        pixel(
+            x + 13 * scale,
+            y - 1 * scale,
+            3 * scale,
+            7 * scale,
+            COLORS.dark
+        );
+
+    }
+
+    else if (animation === 1) {
+
+        pixel(
+            x + 3 * scale,
+            y - 1 * scale,
+            3 * scale,
+            7 * scale,
+            COLORS.dark
+        );
+
+        pixel(
+            x + 14 * scale,
+            y - 1 * scale,
+            3 * scale,
+            8 * scale,
+            COLORS.dark
+        );
+
+    }
+
+    else if (animation === 2) {
+
+        pixel(
+            x + 6 * scale,
+            y - 1 * scale,
+            3 * scale,
+            8 * scale,
+            COLORS.dark
+        );
+
+        pixel(
+            x + 12 * scale,
+            y - 1 * scale,
+            3 * scale,
+            7 * scale,
+            COLORS.dark
+        );
+
+    }
+
+    else {
+
+        pixel(
+            x + 3 * scale,
+            y - 1 * scale,
+            3 * scale,
+            8 * scale,
+            COLORS.dark
+        );
+
+        pixel(
+            x + 13 * scale,
+            y - 1 * scale,
+            3 * scale,
+            7 * scale,
+            COLORS.dark
+        );
+
+    }
+
+
+    /*
+    BODY
+
+    Head is deliberately on LEFT.
+
+    Cow moves LEFT.
+    */
+
+    pixel(
+        x + 3 * scale,
+        y - bodyHeight,
+        bodyWidth,
+        bodyHeight,
+        COLORS.dark
+    );
+
+
+    /*
+    BODY HIGHLIGHT
+    */
+
+    pixel(
+        x + 7 * scale,
+        y - bodyHeight + 2 * scale,
+        6 * scale,
+        2 * scale,
+        COLORS.mountainDark
+    );
+
+
+    /*
+    HEAD
+    */
+
+    pixel(
+        x - 4 * scale,
+        y - bodyHeight + 1 * scale,
+        8 * scale,
+        8 * scale,
+        COLORS.darkest
+    );
+
+
+    /*
+    SNOUT
+    */
+
+    pixel(
+        x - 7 * scale,
+        y - bodyHeight + 4 * scale,
+        4 * scale,
+        4 * scale,
+        COLORS.darkest
+    );
+
+
+    /*
+    EAR
+    */
+
+    pixel(
+        x - 2 * scale,
+        y - bodyHeight + 0 * scale,
+        4 * scale,
+        3 * scale,
+        COLORS.dark
+    );
+
+
+    /*
+    HORN
+    */
+
+    pixel(
+        x - 5 * scale,
+        y - bodyHeight - 2 * scale,
+        2 * scale,
+        5 * scale,
+        COLORS.darkest
+    );
+
+    pixel(
+        x - 2 * scale,
+        y - bodyHeight - 3 * scale,
+        2 * scale,
+        4 * scale,
+        COLORS.darkest
+    );
+
+
+    /*
+    EYE
+    */
+
+    pixel(
+        x - 3 * scale,
+        y - bodyHeight + 3 * scale,
+        Math.max(1, scale),
+        Math.max(1, scale),
+        COLORS.skyLight
+    );
+
+
+    /*
+    TAIL
+    */
+
+    pixel(
+        x + bodyWidth + 2 * scale,
+        y - bodyHeight + 1 * scale,
+        2 * scale,
+        7 * scale,
+        COLORS.darkest
+    );
+
+    pixel(
+        x + bodyWidth + 3 * scale,
+        y - bodyHeight + 7 * scale,
+        4 * scale,
+        2 * scale,
+        COLORS.darkest
+    );
+
+}
+
+
+/*
+====================================================
+SPAWN COW
+====================================================
+*/
+
+function spawnCow() {
+
+    /*
+    Random lane
+    */
+
+    let lane =
+        Math.floor(
+            Math.random() * 3
+        );
+
+
+    /*
+    Start far away.
+
+    This is the key to the pseudo-3D effect.
+    */
+
+    let depth =
+        0.05 + Math.random() * 0.12;
+
+
+    /*
+    Lane spread becomes wider
+    as cow comes toward us.
+    */
+
+    let center =
+        WIDTH / 2;
+
+    let laneOffset =
+        lanePositions[lane] * 35 * depth;
+
+
+    cows.push({
+
+        lane: lane,
+
+        depth: depth,
+
+        x: center + laneOffset + 3,
+
+        speed:
+            0.0018 +
+            level * 0.00035 +
+
+            Math.random() * 0.0007
+
+    });
+
+}
+
+
+/*
+====================================================
+UPDATE COW POSITION
+====================================================
+*/
+
+function updateCows() {
+
+    for (
+        let i = cows.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        let cow = cows[i];
+
+
+        /*
+        Move through depth.
+
+        Instead of simply moving left/right,
+        the cow approaches the player.
+        */
+
+        cow.depth += cow.speed;
+
+
+        /*
+        Perspective lane movement.
+
+        Cows become wider apart
+        as they approach.
+        */
+
+        let center =
+            WIDTH / 2;
+
+        let laneOffset =
+            lanePositions[cow.lane] *
+            38 *
+            cow.depth;
+
+
+        /*
+        Slight side-to-side running movement.
+        */
+
+        cow.x =
+            center +
+            laneOffset;
+
+
+        /*
+        Dust
+        */
+
+        if (
+            cow.depth > 0.25 &&
+            frame % 5 === 0
+        ) {
+
+            createDust(
+                cow.x,
+                getDepthY(cow.depth)
+            );
+
+        }
+
+
+        /*
+        Cow reaches player.
+        */
+
+        if (cow.depth >= 0.95) {
+
+            /*
+            If cowboy is in same lane,
+            the cow got through.
+            */
+
+            if (
+                cow.lane === cowboy.lane
+            ) {
+
+                endGame();
+
+                return;
+            }
+
+
+            /*
+            Cow missed cowboy.
+            */
+
+            cows.splice(i, 1);
+        }
+
+    }
+
+}
+
+
+/*
+====================================================
+DUST
+====================================================
+*/
+
+function createDust(x, y) {
+
+    for (let i = 0; i < 2; i++) {
+
+        dust.push({
+
+            x: x,
+
+            y: y,
+
+            vx:
+                (Math.random() - 0.5) * 0.7,
+
+            vy:
+                -Math.random() * 0.5,
+
+            life: 12 +
+
+                Math.random() * 8
+
+        });
+
+    }
+
+}
+
+
+function updateDust() {
+
+    for (
+        let i = dust.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        let p = dust[i];
+
+        p.x += p.vx;
+
+        p.y += p.vy;
+
+        p.life--;
+
+        if (p.life <= 0) {
+
+            dust.splice(i, 1);
+
+        }
+
+    }
+
+}
+
+
+function drawDust() {
+
+    for (let p of dust) {
+
+        pixel(
+            p.x,
+            p.y,
+            2,
+            1,
+            COLORS.groundDark
+        );
+
+    }
+
+}
+
+
+/*
+====================================================
+PARTICLES
+====================================================
+*/
+
+function createCatchParticles(x, y) {
+
+    for (let i = 0; i < 12; i++) {
+
+        particles.push({
+
+            x: x,
+
+            y: y,
+
+            vx:
+                (Math.random() - 0.5) * 2,
+
+            vy:
+                (Math.random() - 0.5) * 2,
+
+            life: 20
+
+        });
+
+    }
+
+}
+
+
+function updateParticles() {
+
+    for (
+        let i = particles.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        let p = particles[i];
+
+        p.x += p.vx;
+
+        p.y += p.vy;
+
+        p.life--;
+
+        if (p.life <= 0) {
+
+            particles.splice(i, 1);
+
+        }
+
+    }
+
+}
+
+
+function drawParticles() {
+
+    for (let p of particles) {
+
+        pixel(
+            p.x,
+            p.y,
+            2,
+            2,
+            COLORS.darkest
+        );
+
+    }
+
+}
+
+
+/*
+====================================================
+SCORE POPUP
+====================================================
+*/
+
+function createPopup(x, y) {
+
+    popups.push({
+
+        x: x,
+
+        y: y,
+
+        life: 28
+
+    });
+
+}
+
+
+function updatePopups() {
+
+    for (
+        let i = popups.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        let popup = popups[i];
+
+        popup.y -= 0.4;
+
+        popup.life--;
+
+        if (popup.life <= 0) {
+
+            popups.splice(i, 1);
+
+        }
+
+    }
+
+}
+
+
+function drawPopups() {
+
+    ctx.font = "6px monospace";
+
+    ctx.fillStyle = COLORS.darkest;
+
+    for (let popup of popups) {
+
+        ctx.fillText(
+            "+10",
+            popup.x,
+            popup.y
+        );
+
+    }
+
+}
+
+
+/*
+====================================================
+COWBOY
+====================================================
+*/
+
+function drawCowboy() {
+
+    /*
+    Cowboy is always foreground.
+
+    This gives the game its
+    pseudo-3D perspective.
+    */
+
+    let x =
+        cowboy.x;
+
+    let y =
+        130;
+
+
+    /*
+    Lane movement
+    */
+
+    let laneOffset =
+        (cowboy.lane - 1) * 24;
+
+    x += laneOffset;
+
+
+    /*
+    Animation
+    */
+
+    let animation =
+        Math.floor(frame / 5) % 4;
+
+    let bob =
+        [0, 1, 0, -1][animation];
+
+    y += bob;
+
+
+    /*
+    Shadow
+    */
+
+    pixel(
+        x - 5,
+        y,
+        18,
+        3,
+        COLORS.groundDark
+    );
+
+
+    /*
+    Legs
+    */
+
+    if (
+        animation === 0 ||
+        animation === 2
+    ) {
+
+        pixel(
+            x - 4,
+            y - 14,
+            4,
+            14,
+            COLORS.darkest
+        );
+
+        pixel(
+            x + 4,
+            y - 14,
+            4,
+            12,
+            COLORS.darkest
+        );
+
+    }
+
+    else {
+
+        pixel(
+            x - 6,
+            y - 13,
+            4,
+            13,
+            COLORS.darkest
+        );
+
+        pixel(
+            x + 5,
+            y - 14,
+            4,
+            14,
+            COLORS.darkest
+        );
+
+    }
+
+
+    /*
+    BODY
+    */
+
+    pixel(
+        x - 6,
+        y - 27,
+        15,
+        14,
+        COLORS.dark
+    );
+
+
+    /*
+    VEST
+    */
+
+    pixel(
+        x - 3,
+        y - 26,
+        3,
+        11,
+        COLORS.darker
+    );
+
+
+    pixel(
+        x + 3,
+        y - 26,
+        3,
+        11,
+        COLORS.darker
+    );
+
+
+    /*
+    BELT
+    */
+
+    pixel(
+        x - 6,
+        y - 16,
+        15,
+        3,
+        COLORS.darkest
+    );
+
+
+    /*
+    ARM WITH LASSO
+    */
+
+    pixel(
+        x + 7,
+        y - 25,
+        9,
+        3,
+        COLORS.darkest
+    );
+
+    pixel(
+        x + 14,
+        y - 27,
+        3,
+        5,
+        COLORS.darkest
+    );
+
+
+    /*
+    HEAD
+    */
+
+    pixel(
+        x - 4,
+        y - 36,
+        10,
+        9,
+        COLORS.darkest
+    );
+
+
+    /*
+    NOSE
+    */
+
+    pixel(
+        x + 5,
+        y - 33,
+        4,
+        4,
+        COLORS.darkest
+    );
+
+
+    /*
+    HAT
+    */
+
+    pixel(
+        x - 8,
+        y - 39,
+        17,
+        4,
+        COLORS.darkest
+    );
+
+    pixel(
+        x - 4,
+        y - 43,
+        10,
+        5,
+        COLORS.darkest
+    );
+
+
+    /*
+    Hat band
+    */
+
+    pixel(
+        x - 3,
+        y - 39,
+        8,
+        2,
+        COLORS.mountainDark
+    );
+
+}
+
+
+/*
+====================================================
+LASSO
+====================================================
+*/
+
+function drawLasso() {
+
+    if (lassoTimer <= 0) {
+
+        return;
+
+    }
+
+
+    let cowboyX =
+        cowboy.x +
+        (cowboy.lane - 1) * 24;
+
+
+    let cowboyY =
+        103;
+
+
+    /*
+    Rope gets larger
+    during swing.
+    */
+
+    let progress =
+        1 -
+        lassoTimer / 20;
+
+
+    let radius =
+        5 +
+        progress * 15;
+
+
+    let centerX =
+        cowboyX + 17;
+
+
+    let centerY =
+        cowboyY - 25;
+
+
+    /*
+    Rope from hand
+    */
+
+    pixel(
+        cowboyX + 12,
+        cowboyY - 26,
+        8,
+        1,
+        COLORS.darkest
+    );
+
+
+    /*
+    Rotating loop
+    */
+
+    let points = 20;
+
+
+    for (
+        let i = 0;
+        i < points;
+        i++
+    ) {
+
+        let angle =
+            (Math.PI * 2 / points) * i +
+            frame * 0.25;
+
+
+        let x =
+            centerX +
+            Math.cos(angle) *
+            radius;
+
+
+        let y =
+            centerY +
+            Math.sin(angle) *
+            radius *
+            0.55;
+
+
+        pixel(
+            x,
+            y,
+            2,
+            2,
+            COLORS.darkest
+        );
+
+    }
+
+}
+
+
+/*
+====================================================
+CATCH COW
+====================================================
+*/
+
+function catchCow() {
+
+    if (lassoTimer <= 0) {
+
+        return;
+
+    }
+
+
+    let bestCow = null;
+
+    let bestDistance = Infinity;
+
+
+    for (let cow of cows) {
+
+        /*
+        Only cows close enough
+        can be caught.
+        */
+
+        if (
+            cow.lane !== cowboy.lane
+        ) {
+
+            continue;
+
+        }
+
+
+        if (
+            cow.depth < 0.20 ||
+            cow.depth > 0.82
+        ) {
+
+            continue;
+
+        }
+
+
+        let distance =
+            Math.abs(
+                cow.depth - 0.58
+            );
+
+
+        if (
+            distance < bestDistance
+        ) {
+
+            bestDistance =
+                distance;
+
+            bestCow =
+                cow;
+
+        }
+
+    }
+
+
+    if (bestCow) {
+
+        let x =
+            bestCow.x;
+
+        let y =
+            getDepthY(bestCow.depth);
+
+
+        /*
+        Remove cow
+        */
+
+        cows =
+            cows.filter(
+                cow => cow !== bestCow
+            );
+
+
+        /*
+        Score
+        */
+
+        score += 10;
+
+
+        /*
+        Every 50 points:
+        new level.
+        */
+
+        level =
+            Math.floor(score / 50) + 1;
+
+
+        /*
+        Higher score = faster game.
+        */
+
+        worldSpeed =
+            0.6 +
+            level * 0.08;
+
+
+        /*
+        High score
+        */
+
+        if (
+            score > highScore
+        ) {
+
+            highScore =
+                score;
+
+            localStorage.setItem(
+                "solarRodeoHighScore",
+                highScore
+            );
+
+        }
+
+
+        /*
+        Effects
+        */
+
+        createPopup(
+            x,
+            y - 10
+        );
+
+        createCatchParticles(
+            x,
+            y
+        );
+
+        shake = 5;
+
+        catchFlash = 5;
+
+
+        updateHUD();
+
+    }
+
+}
+
+
+/*
+====================================================
+START / GAME OVER
+====================================================
+*/
+
+function startGame() {
+
+    if (gameOver) {
+
+        score = 0;
+
+        level = 1;
+
+        worldSpeed = 0.6;
+
+        cows = [];
+
+        dust = [];
+
+        particles = [];
+
+        popups = [];
+
+        spawnTimer = 40;
+
+        gameOver = false;
+
+    }
+
+
+    gameStarted = true;
+
+    updateHUD();
+
+}
+
+
+function endGame() {
+
+    gameOver = true;
+
+    shake = 8;
+
+}
+
+
+/*
+====================================================
+UPDATE
+====================================================
+*/
+
+function update() {
+
+    if (
+        !gameStarted ||
+        gameOver
+    ) {
+
+        return;
+
+    }
+
+
+    frame++;
+
+
+    /*
+    Spawn rate becomes faster
+    as level increases.
+    */
+
+    spawnTimer--;
+
+
+    if (
+        spawnTimer <= 0
+    ) {
+
+        spawnCow();
+
+
+        spawnTimer =
+            Math.max(
+                28,
+                75 - level * 5
+            );
+
+    }
+
+
+    /*
+    Lasso timer
+    */
+
+    if (
+        lassoTimer > 0
+    ) {
+
+        lassoTimer--;
+
+        catchCow();
+
+    }
+
+
+    /*
+    Update cows
+    */
+
+    updateCows();
+
+
+    /*
+    Effects
+    */
+
+    updateDust();
+
+    updateParticles();
+
+    updatePopups();
+
+
+    /*
+    Screen shake
+    */
+
+    if (
+        shake > 0
+    ) {
+
+        shake--;
+
+    }
+
+
+    /*
+    Catch flash
+    */
+
+    if (
+        catchFlash > 0
+    ) {
+
+        catchFlash--;
+
+    }
+
+}
+
+
+/*
+====================================================
+DRAW
+====================================================
+*/
+
+function draw() {
+
+    ctx.clearRect(
+        0,
+        0,
+        WIDTH,
+        HEIGHT
+    );
+
+
+    /*
+    Screen shake
+    */
+
+    ctx.save();
+
+
+    if (
+        shake > 0
+    ) {
+
+        ctx.translate(
+
+            Math.round(
+                Math.random() * 2 - 1
+            ),
+
+            Math.round(
+                Math.random() * 2 - 1
+            )
+
+        );
+
+    }
+
+
+    /*
+    WORLD
+    */
+
+    drawSky();
+
+    drawMountains();
+
+    drawGround();
+
+    drawWorldObjects();
+
+
+    /*
+    COWS
+
+    Sort by depth.
+
+    Far cows draw first.
+    Near cows draw later.
+
+    This creates proper overlap.
+    */
+
+    let sortedCows =
+        [...cows].sort(
+            (a, b) =>
+                a.depth - b.depth
+        );
+
+
+    for (
+        let cow of sortedCows
+    ) {
+
+        drawCow(cow);
+
+    }
+
+
+    /*
+    Effects
+    */
+
+    drawDust();
+
+    drawParticles();
+
+
+    /*
+    Cowboy
+    */
+
+    drawCowboy();
+
+
+    /*
+    Lasso
+    */
+
+    drawLasso();
+
+
+    /*
+    Score popups
+    */
+
+    drawPopups();
+
+
+    ctx.restore();
+
+
+    /*
+    Catch flash
+    */
+
+    if (
+        catchFlash > 0
+    ) {
+
+        ctx.fillStyle =
+            "rgba(183,192,165,0.15)";
+
+        ctx.fillRect(
+            0,
+            0,
+            WIDTH,
+            HEIGHT
+        );
+
+    }
+
+
+    /*
+    Scanlines
+
+    Gives the LCD/CRT feel.
+    */
+
+    ctx.fillStyle =
+        "rgba(37,47,39,0.08)";
+
+
+    for (
+        let y = 0;
+        y < HEIGHT;
+        y += 3
+    ) {
+
+        ctx.fillRect(
+            0,
+            y,
+            WIDTH,
+            1
+        );
+
+    }
+
+
+    /*
+    START SCREEN
+    */
+
+    if (
+        !gameStarted
+    ) {
+
+        drawMessage(
+            "SOLAR RODEO",
+            "PRESS LASSO",
+            "TO START"
+        );
+
+    }
+
+
+    /*
+    GAME OVER
+    */
+
+    if (
+        gameOver
+    ) {
+
+        drawMessage(
+            "HERD GOT AWAY",
+            "SCORE " +
+            String(score).padStart(4, "0"),
+            "PRESS LASSO"
+        );
+
+    }
+
+}
+
+
+/*
+====================================================
+MESSAGE SCREEN
+====================================================
+*/
+
+function drawMessage(
+    line1,
+    line2,
+    line3
+) {
+
+    ctx.fillStyle =
+        "rgba(157,169,149,0.94)";
+
+    ctx.fillRect(
+        22,
+        43,
+        156,
+        55
+    );
+
+
+    ctx.strokeStyle =
+        COLORS.darkest;
+
+    ctx.lineWidth = 2;
+
+    ctx.strokeRect(
+        22,
+        43,
+        156,
+        55
+    );
+
+
+    ctx.fillStyle =
+        COLORS.darkest;
+
+    ctx.textAlign =
+        "center";
+
+
+    ctx.font =
+        "9px monospace";
+
+    ctx.fillText(
+        line1,
+        100,
+        58
+    );
+
+
+    ctx.font =
+        "6px monospace";
+
+    ctx.fillText(
+        line2,
+        100,
+        72
+    );
+
+    ctx.fillText(
+        line3,
+        100,
+        84
+    );
+
+
+    ctx.textAlign =
+        "left";
+
+}
+
+
+/*
+====================================================
+GAME LOOP
+====================================================
+*/
+
+function gameLoop() {
+
+    update();
+
+    draw();
+
+    requestAnimationFrame(
+        gameLoop
+    );
+
+}
+
+gameLoop();
+
+
+/*
+====================================================
+LASSO BUTTON
+====================================================
+*/
+
+function pressLasso() {
+
+    if (
+        !gameStarted ||
+        gameOver
+    ) {
+
+        startGame();
+
+        return;
+
+    }
+
+
+    /*
+    Don't allow constant
+    lasso spam.
+    */
+
+    if (
+        lassoTimer <= 0
+    ) {
+
+        lassoTimer = 20;
+
+        catchCow();
+
+    }
+
+}
+
+
+document
+    .getElementById("lasso")
+    .addEventListener(
+        "pointerdown",
+        pressLasso
+    );
+
+
+/*
+====================================================
+LANE CONTROLS
+====================================================
+*/
+
+function moveUp() {
+
+    if (
+        cowboy.lane > 0
+    ) {
+
+        cowboy.lane--;
+
+    }
+
+}
+
+
+function moveDown() {
+
+    if (
+        cowboy.lane < 2
+    ) {
+
+        cowboy.lane++;
+
+    }
+
+}
+
+
+document
+    .getElementById("up")
+    .addEventListener(
+        "pointerdown",
+        moveUp
+    );
+
+
+document
+    .getElementById("down")
+    .addEventListener(
+        "pointerdown",
+        moveDown
+    );
+
+
+/*
+====================================================
+KEYBOARD
+====================================================
+*/
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            event.key === "ArrowUp"
+        ) {
+
+            moveUp();
+
+        }
+
+
+        if (
+            event.key === "ArrowDown"
+        ) {
+
+            moveDown();
+
+        }
+
+
+        if (
+            event.key === " " ||
+            event.key === "Enter"
+        ) {
+
+            pressLasso();
+
+        }
+
+    }
+);
+
+</script>
+
+</body>
+</html>
