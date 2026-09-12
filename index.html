@@ -278,32 +278,10 @@
 
 <script>
 
-/*
-====================================================
-RETRO SOLAR RODEO
-2D PSEUDO-3D VERSION
-====================================================
-
-Everything is drawn using Canvas.
-
-The game is still 2D.
-
-But objects have DEPTH.
-
-Far objects:
-    small
-    high on screen
-    slow
-
-Near objects:
-    large
-    low on screen
-    fast
-
-This creates the borderline-3D effect.
-====================================================
-*/
-
+/* ==================================================
+   RETRO SOLAR RODEO
+   PSEUDO-3D ENGINE - FIXED MOVEMENT + LASSO
+================================================== */
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -311,55 +289,37 @@ const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled = false;
 
 
-/*
-====================================================
-LCD PALETTE
-====================================================
-*/
+/* ==================================================
+   COLORS
+================================================== */
 
 const COLORS = {
-
     sky: "#9da995",
-
     skyLight: "#b7c0a5",
-
     mountain: "#71806c",
-
     mountainDark: "#5c695a",
-
     ground: "#aeb79e",
-
     groundDark: "#7c8974",
-
     dark: "#3f4e3d",
-
     darker: "#303c30",
-
     darkest: "#252f27",
-
     black: "#1c251e"
 };
 
 
-/*
-====================================================
-GAME CONSTANTS
-====================================================
-*/
+/* ==================================================
+   CANVAS
+================================================== */
 
 const WIDTH = 200;
 const HEIGHT = 150;
 
 const HORIZON = 50;
 
-const ROAD_BOTTOM = 150;
 
-
-/*
-====================================================
-GAME STATE
-====================================================
-*/
+/* ==================================================
+   GAME STATE
+================================================== */
 
 let score = 0;
 
@@ -376,58 +336,46 @@ let frame = 0;
 
 let worldSpeed = 0.6;
 
-let spawnTimer = 60;
+let spawnTimer = 50;
 
 let shake = 0;
 
-let lassoTimer = 0;
 
-let catchFlash = 0;
+/* ==================================================
+   COWBOY
+==================================================
 
+   targetLane = where the player wants to go
 
-/*
-====================================================
-COWBOY
-====================================================
-*/
+   lane = actual position
+
+   Because lane is a decimal number, the cowboy
+   can smoothly travel between lanes.
+================================================== */
 
 const cowboy = {
 
+    targetLane: 1,
+
     lane: 1,
 
-    x: 31,
+    x: 100,
 
-    depth: 1,
-
-    animation: 0
+    y: 130
 
 };
 
 
-/*
-====================================================
-LANES
-====================================================
+/* ==================================================
+   LANES
+================================================== */
 
-These aren't fixed Y positions anymore.
-
-The lane position is calculated using perspective.
-
-====================================================
-*/
-
-const lanePositions = [
-    -1,
-    0,
-    1
-];
+const lanePositions = [-1, 0, 1];
 
 
-/*
-====================================================
-OBJECT ARRAYS
-====================================================
-*/
+/* ==================================================
+   OBJECTS
+================================================== */
 
 let cows = [];
 
@@ -437,35 +385,31 @@ let particles = [];
 
 let popups = [];
 
-let stars = [];
+
+/* ==================================================
+   LASSO STATE
+================================================== */
+
+const lasso = {
+
+    active: false,
+
+    timer: 0,
+
+    duration: 26,
+
+    angle: 0,
+
+    radius: 0,
+
+    caughtCow: null
+
+};
 
 
-/*
-====================================================
-CREATE STARS
-====================================================
-*/
-
-for (let i = 0; i < 30; i++) {
-
-    stars.push({
-
-        x: Math.random() * WIDTH,
-
-        y: Math.random() * 42,
-
-        size: Math.random() < 0.7 ? 1 : 2
-
-    });
-
-}
-
-
-/*
-====================================================
-HUD
-====================================================
-*/
+/* ==================================================
+   HUD
+================================================== */
 
 function updateHUD() {
 
@@ -483,39 +427,27 @@ function updateHUD() {
 updateHUD();
 
 
-/*
-====================================================
-PIXEL DRAWING
-====================================================
-*/
+/* ==================================================
+   PIXEL HELPER
+================================================== */
 
-function pixel(x, y, width, height, color) {
+function pixel(x, y, w, h, color) {
 
     ctx.fillStyle = color;
 
     ctx.fillRect(
         Math.round(x),
         Math.round(y),
-        Math.round(width),
-        Math.round(height)
+        Math.round(w),
+        Math.round(h)
     );
 
 }
 
 
-/*
-====================================================
-PERSPECTIVE FUNCTIONS
-====================================================
-*/
-
-/*
-depth:
-
-0 = horizon
-
-1 = foreground
-*/
+/* ==================================================
+   PERSPECTIVE
+================================================== */
 
 function getDepthY(depth) {
 
@@ -531,124 +463,9 @@ function getScale(depth) {
 }
 
 
-/*
-====================================================
-ROAD / DESERT
-====================================================
-*/
-
-function drawGround() {
-
-    pixel(
-        0,
-        HORIZON,
-        WIDTH,
-        HEIGHT - HORIZON,
-        COLORS.ground
-    );
-
-
-    /*
-    Perspective horizontal bands
-    */
-
-    for (let i = 0; i < 8; i++) {
-
-        let depth =
-            i / 8;
-
-        let y =
-            getDepthY(depth);
-
-        pixel(
-            0,
-            y,
-            WIDTH,
-            1,
-            COLORS.groundDark
-        );
-
-    }
-
-
-    /*
-    Perspective road lines
-    */
-
-    let movement =
-        (frame * worldSpeed) % 18;
-
-
-    for (let lane = -1; lane <= 1; lane++) {
-
-        for (let d = 0; d < 1; d += 0.12) {
-
-            let depth =
-                (d + movement / 180) % 1;
-
-            let y =
-                getDepthY(depth);
-
-            let center =
-                WIDTH / 2;
-
-            let spread =
-                depth * 110;
-
-            let x =
-                center + lane * spread;
-
-
-            let lineWidth =
-                1 + depth * 3;
-
-
-            pixel(
-                x,
-                y,
-                lineWidth,
-                2 + depth * 2,
-                COLORS.groundDark
-            );
-
-        }
-
-    }
-
-
-    /*
-    Foreground desert texture
-    */
-
-    for (let i = 0; i < 20; i++) {
-
-        let depth =
-            ((i * 0.083) + frame * 0.003) % 1;
-
-        let y =
-            getDepthY(depth);
-
-        let x =
-            (i * 47 + frame * (depth + 0.2)) % WIDTH;
-
-        pixel(
-            x,
-            y,
-            2 + depth * 3,
-            1,
-            COLORS.groundDark
-        );
-
-    }
-
-}
-
-
-/*
-====================================================
-SKY
-====================================================
-*/
+/* ==================================================
+   SKY
+================================================== */
 
 function drawSky() {
 
@@ -661,9 +478,7 @@ function drawSky() {
     );
 
 
-    /*
-    Retro sun
-    */
+    /* Sun */
 
     pixel(
         151,
@@ -690,66 +505,57 @@ function drawSky() {
     );
 
 
-    /*
-    Clouds
-    */
+    /* Clouds */
 
     drawCloud(
-        30 - (frame * 0.05 % 220),
+        25 - (frame * 0.05 % 230),
         16
     );
 
     drawCloud(
-        120 - (frame * 0.025 % 220),
+        125 - (frame * 0.025 % 230),
         27
     );
 
-
-    /*
-    Distant stars begin appearing
-    */
-
-    if (level >= 4) {
-
-        for (let star of stars) {
-
-            pixel(
-                star.x,
-                star.y,
-                star.size,
-                star.size,
-                COLORS.mountainDark
-            );
-
-        }
-
-    }
-
 }
 
 
-/*
-====================================================
-CLOUD
-====================================================
-*/
+/* ==================================================
+   CLOUD
+================================================== */
 
 function drawCloud(x, y) {
 
-    pixel(x, y, 18, 4, COLORS.skyLight);
+    pixel(
+        x,
+        y,
+        18,
+        4,
+        COLORS.skyLight
+    );
 
-    pixel(x + 4, y - 3, 8, 4, COLORS.skyLight);
+    pixel(
+        x + 4,
+        y - 3,
+        8,
+        4,
+        COLORS.skyLight
+    );
 
-    pixel(x + 11, y - 2, 6, 3, COLORS.skyLight);
+    pixel(
+        x + 11,
+        y - 2,
+        6,
+        3,
+        COLORS.skyLight
+    );
 
 }
 
 
-/*
-====================================================
-MOUNTAINS
-====================================================
-*/
+/* ==================================================
+   MOUNTAINS
+================================================== */
 
 function drawMountains() {
 
@@ -795,11 +601,113 @@ function drawMountains() {
 }
 
 
-/*
-====================================================
-CACTUS
-====================================================
-*/
+/* ==================================================
+   GROUND
+================================================== */
+
+function drawGround() {
+
+    pixel(
+        0,
+        HORIZON,
+        WIDTH,
+        HEIGHT - HORIZON,
+        COLORS.ground
+    );
+
+
+    /* Perspective lines */
+
+    for (let i = 0; i < 9; i++) {
+
+        let depth =
+            i / 9;
+
+        let y =
+            getDepthY(depth);
+
+        pixel(
+            0,
+            y,
+            WIDTH,
+            1,
+            COLORS.groundDark
+        );
+
+    }
+
+
+    /* Moving desert marks */
+
+    let movement =
+        (frame * worldSpeed) % 22;
+
+
+    for (let i = 0; i < 25; i++) {
+
+        let depth =
+            ((i * 0.071) +
+            movement / 220) % 1;
+
+
+        let y =
+            getDepthY(depth);
+
+
+        let x =
+            (i * 41 +
+            frame * (0.15 + depth)) % WIDTH;
+
+
+        pixel(
+            x,
+            y,
+            2 + depth * 3,
+            1,
+            COLORS.groundDark
+        );
+
+    }
+
+
+    /* Perspective lane markers */
+
+    for (let lane = -1; lane <= 1; lane++) {
+
+        for (let i = 0; i < 12; i++) {
+
+            let depth =
+                ((i / 12) +
+                frame * 0.003) % 1;
+
+
+            let y =
+                getDepthY(depth);
+
+
+            let x =
+                WIDTH / 2 +
+                lane * 38 * depth;
+
+
+            pixel(
+                x,
+                y,
+                1 + depth * 2,
+                2 + depth * 2,
+                COLORS.groundDark
+            );
+
+        }
+
+    }
+
+}
+
+
+/* ==================================================
+   CACTUS
+================================================== */
 
 function drawCactus(x, depth) {
 
@@ -809,14 +717,11 @@ function drawCactus(x, depth) {
     let y =
         getDepthY(depth);
 
-    let size =
-        4 * scale;
-
 
     pixel(
         x,
         y - 14 * scale,
-        size,
+        4 * scale,
         14 * scale,
         COLORS.dark
     );
@@ -840,7 +745,7 @@ function drawCactus(x, depth) {
 
 
     pixel(
-        x + size,
+        x + 4 * scale,
         y - 7 * scale,
         4 * scale,
         3 * scale,
@@ -848,7 +753,7 @@ function drawCactus(x, depth) {
     );
 
     pixel(
-        x + size + 1 * scale,
+        x + 5 * scale,
         y - 7 * scale,
         3 * scale,
         7 * scale,
@@ -858,29 +763,28 @@ function drawCactus(x, depth) {
 }
 
 
-/*
-====================================================
-WORLD DECORATION
-====================================================
-*/
+/* ==================================================
+   WORLD OBJECTS
+================================================== */
 
 function drawWorldObjects() {
 
-    /*
-    Distant cacti
-    */
-
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 8; i++) {
 
         let depth =
-            ((i * 0.17 + frame * 0.001) % 0.65);
+            ((i * 0.15) +
+            frame * 0.001) % 0.65;
+
 
         let x =
-            (i * 39 - frame * 0.15) % WIDTH;
+            (i * 47 -
+            frame * 0.12) % WIDTH;
+
 
         if (x < 0) {
             x += WIDTH;
         }
+
 
         drawCactus(
             x,
@@ -892,26 +796,23 @@ function drawWorldObjects() {
 }
 
 
-/*
-====================================================
-COW
-====================================================
-*/
+/* ==================================================
+   COW
+================================================== */
 
 function drawCow(cow) {
 
     let scale =
         getScale(cow.depth);
 
+
     let y =
         getDepthY(cow.depth);
+
 
     let x =
         cow.x;
 
-    /*
-    Animation frame
-    */
 
     let animation =
         Math.floor(frame / 5) % 4;
@@ -920,36 +821,22 @@ function drawCow(cow) {
     let bob =
         [0, 1, 0, -1][animation] * scale;
 
+
     y += bob;
 
 
-    /*
-    Cow dimensions
-    */
-
-    let bodyWidth =
-        16 * scale;
-
-    let bodyHeight =
-        9 * scale;
-
-
-    /*
-    SHADOW
-    */
+    /* Shadow */
 
     pixel(
         x + 2 * scale,
-        y + 1 * scale,
-        bodyWidth + 3 * scale,
+        y,
+        20 * scale,
         Math.max(1, 2 * scale),
         COLORS.groundDark
     );
 
 
-    /*
-    LEGS
-    */
+    /* Legs */
 
     if (animation === 0) {
 
@@ -1032,82 +919,66 @@ function drawCow(cow) {
     }
 
 
-    /*
-    BODY
-
-    Head is deliberately on LEFT.
-
-    Cow moves LEFT.
-    */
+    /* Body */
 
     pixel(
         x + 3 * scale,
-        y - bodyHeight,
-        bodyWidth,
-        bodyHeight,
+        y - 9 * scale,
+        16 * scale,
+        9 * scale,
         COLORS.dark
     );
 
 
-    /*
-    BODY HIGHLIGHT
-    */
+    /* Body highlight */
 
     pixel(
         x + 7 * scale,
-        y - bodyHeight + 2 * scale,
+        y - 7 * scale,
         6 * scale,
         2 * scale,
         COLORS.mountainDark
     );
 
 
-    /*
-    HEAD
-    */
+    /* HEAD - LEFT */
 
     pixel(
         x - 4 * scale,
-        y - bodyHeight + 1 * scale,
+        y - 8 * scale,
         8 * scale,
         8 * scale,
         COLORS.darkest
     );
 
 
-    /*
-    SNOUT
-    */
+    /* Snout */
 
     pixel(
         x - 7 * scale,
-        y - bodyHeight + 4 * scale,
+        y - 5 * scale,
         4 * scale,
         4 * scale,
         COLORS.darkest
     );
 
 
-    /*
-    EAR
-    */
+    /* Ear */
 
     pixel(
         x - 2 * scale,
-        y - bodyHeight + 0 * scale,
+        y - 10 * scale,
         4 * scale,
         3 * scale,
         COLORS.dark
     );
 
 
-    /*
-    HORN
-    */
+    /* Horns */
 
     pixel(
         x - 5 * scale,
-        y - bodyHeight - 2 * scale,
+        y - 11 * scale,
         2 * scale,
         5 * scale,
         COLORS.darkest
@@ -1115,41 +986,37 @@ function drawCow(cow) {
 
     pixel(
         x - 2 * scale,
-        y - bodyHeight - 3 * scale,
+        y - 12 * scale,
         2 * scale,
         4 * scale,
         COLORS.darkest
     );
 
 
-    /*
-    EYE
-    */
+    /* Eye */
 
     pixel(
         x - 3 * scale,
-        y - bodyHeight + 3 * scale,
+        y - 6 * scale,
         Math.max(1, scale),
         Math.max(1, scale),
         COLORS.skyLight
     );
 
 
-    /*
-    TAIL
-    */
+    /* Tail */
 
     pixel(
-        x + bodyWidth + 2 * scale,
-        y - bodyHeight + 1 * scale,
+        x + 19 * scale,
+        y - 8 * scale,
         2 * scale,
         7 * scale,
         COLORS.darkest
     );
 
     pixel(
-        x + bodyWidth + 3 * scale,
-        y - bodyHeight + 7 * scale,
+        x + 20 * scale,
+        y - 2 * scale,
         4 * scale,
         2 * scale,
         COLORS.darkest
@@ -1158,17 +1025,11 @@ function drawCow(cow) {
 }
 
 
-/*
-====================================================
-SPAWN COW
-====================================================
-*/
+/* ==================================================
+   SPAWN COW
+================================================== */
 
 function spawnCow() {
-
-    /*
-    Random lane
-    */
 
     let lane =
         Math.floor(
@@ -1176,26 +1037,8 @@ function spawnCow() {
         );
 
 
-    /*
-    Start far away.
-
-    This is the key to the pseudo-3D effect.
-    */
-
     let depth =
-        0.05 + Math.random() * 0.12;
-
-
-    /*
-    Lane spread becomes wider
-    as cow comes toward us.
-    */
-
-    let center =
-        WIDTH / 2;
-
-    let laneOffset =
-        lanePositions[lane] * 35 * depth;
+        0.02;
 
 
     cows.push({
@@ -1204,24 +1047,25 @@ function spawnCow() {
 
         depth: depth,
 
-        x: center + laneOffset + 3,
+        x:
+            WIDTH / 2 +
+            lanePositions[lane] *
+            38 *
+            depth,
 
         speed:
-            0.0018 +
+            0.002 +
             level * 0.00035 +
-
-            Math.random() * 0.0007
+            Math.random() * 0.0006
 
     });
 
 }
 
 
-/*
-====================================================
-UPDATE COW POSITION
-====================================================
-*/
+/* ==================================================
+   UPDATE COWS
+================================================== */
 
 function updateCows() {
 
@@ -1231,51 +1075,33 @@ function updateCows() {
         i--
     ) {
 
-        let cow = cows[i];
+        let cow =
+            cows[i];
+
+
+        cow.depth +=
+            cow.speed;
 
 
         /*
-        Move through depth.
-
-        Instead of simply moving left/right,
-        the cow approaches the player.
+        Recalculate X using
+        perspective.
         */
 
-        cow.depth += cow.speed;
-
-
-        /*
-        Perspective lane movement.
-
-        Cows become wider apart
-        as they approach.
-        */
-
-        let center =
-            WIDTH / 2;
-
-        let laneOffset =
+        cow.x =
+            WIDTH / 2 +
             lanePositions[cow.lane] *
             38 *
             cow.depth;
 
 
         /*
-        Slight side-to-side running movement.
-        */
-
-        cow.x =
-            center +
-            laneOffset;
-
-
-        /*
-        Dust
+        Dust only when close enough.
         */
 
         if (
             cow.depth > 0.25 &&
-            frame % 5 === 0
+            frame % 6 === 0
         ) {
 
             createDust(
@@ -1287,31 +1113,27 @@ function updateCows() {
 
 
         /*
-        Cow reaches player.
+        Cow reaches the player.
         */
 
-        if (cow.depth >= 0.95) {
-
-            /*
-            If cowboy is in same lane,
-            the cow got through.
-            */
+        if (
+            cow.depth >= 0.95
+        ) {
 
             if (
-                cow.lane === cowboy.lane
+                cow.lane ===
+                Math.round(cowboy.lane)
             ) {
 
                 endGame();
 
                 return;
+
             }
 
 
-            /*
-            Cow missed cowboy.
-            */
-
             cows.splice(i, 1);
+
         }
 
     }
@@ -1319,264 +1141,97 @@ function updateCows() {
 }
 
 
-/*
-====================================================
-DUST
-====================================================
-*/
+/* ==================================================
+   COWBOY POSITION
+================================================== */
 
-function createDust(x, y) {
+function updateCowboy() {
 
-    for (let i = 0; i < 2; i++) {
+    /*
+    Smooth lane movement.
 
-        dust.push({
+    No teleporting.
+    */
 
-            x: x,
-
-            y: y,
-
-            vx:
-                (Math.random() - 0.5) * 0.7,
-
-            vy:
-                -Math.random() * 0.5,
-
-            life: 12 +
-
-                Math.random() * 8
-
-        });
-
-    }
-
-}
+    let difference =
+        cowboy.targetLane -
+        cowboy.lane;
 
 
-function updateDust() {
+    cowboy.lane +=
+        difference * 0.18;
 
-    for (
-        let i = dust.length - 1;
-        i >= 0;
-        i--
+
+    /*
+    Stop tiny floating-point movement.
+    */
+
+    if (
+        Math.abs(difference) < 0.01
     ) {
 
-        let p = dust[i];
-
-        p.x += p.vx;
-
-        p.y += p.vy;
-
-        p.life--;
-
-        if (p.life <= 0) {
-
-            dust.splice(i, 1);
-
-        }
+        cowboy.lane =
+            cowboy.targetLane;
 
     }
 
-}
 
+    /*
+    Convert lane into screen position.
+    */
 
-function drawDust() {
-
-    for (let p of dust) {
-
-        pixel(
-            p.x,
-            p.y,
-            2,
-            1,
-            COLORS.groundDark
-        );
-
-    }
+    cowboy.x =
+        WIDTH / 2 +
+        (cowboy.lane - 1) * 24;
 
 }
 
 
-/*
-====================================================
-PARTICLES
-====================================================
-*/
-
-function createCatchParticles(x, y) {
-
-    for (let i = 0; i < 12; i++) {
-
-        particles.push({
-
-            x: x,
-
-            y: y,
-
-            vx:
-                (Math.random() - 0.5) * 2,
-
-            vy:
-                (Math.random() - 0.5) * 2,
-
-            life: 20
-
-        });
-
-    }
-
-}
-
-
-function updateParticles() {
-
-    for (
-        let i = particles.length - 1;
-        i >= 0;
-        i--
-    ) {
-
-        let p = particles[i];
-
-        p.x += p.vx;
-
-        p.y += p.vy;
-
-        p.life--;
-
-        if (p.life <= 0) {
-
-            particles.splice(i, 1);
-
-        }
-
-    }
-
-}
-
-
-function drawParticles() {
-
-    for (let p of particles) {
-
-        pixel(
-            p.x,
-            p.y,
-            2,
-            2,
-            COLORS.darkest
-        );
-
-    }
-
-}
-
-
-/*
-====================================================
-SCORE POPUP
-====================================================
-*/
-
-function createPopup(x, y) {
-
-    popups.push({
-
-        x: x,
-
-        y: y,
-
-        life: 28
-
-    });
-
-}
-
-
-function updatePopups() {
-
-    for (
-        let i = popups.length - 1;
-        i >= 0;
-        i--
-    ) {
-
-        let popup = popups[i];
-
-        popup.y -= 0.4;
-
-        popup.life--;
-
-        if (popup.life <= 0) {
-
-            popups.splice(i, 1);
-
-        }
-
-    }
-
-}
-
-
-function drawPopups() {
-
-    ctx.font = "6px monospace";
-
-    ctx.fillStyle = COLORS.darkest;
-
-    for (let popup of popups) {
-
-        ctx.fillText(
-            "+10",
-            popup.x,
-            popup.y
-        );
-
-    }
-
-}
-
-
-/*
-====================================================
-COWBOY
-====================================================
-*/
+/* ==================================================
+   DRAW COWBOY
+================================================== */
 
 function drawCowboy() {
 
-    /*
-    Cowboy is always foreground.
+    updateCowboy();
 
-    This gives the game its
-    pseudo-3D perspective.
-    */
 
     let x =
         cowboy.x;
 
-    let y =
-        130;
-
 
     /*
-    Lane movement
+    IMPORTANT:
+
+    Cowboy's feet remain at a fixed
+    foreground Y position.
+
+    Lane changes ONLY affect X.
+
     */
 
-    let laneOffset =
-        (cowboy.lane - 1) * 24;
-
-    x += laneOffset;
+    let y =
+        cowboy.y;
 
 
     /*
-    Animation
+    Running animation.
     */
 
     let animation =
-        Math.floor(frame / 5) % 4;
+        Math.floor(frame / 6) % 4;
+
+
+    /*
+    Very small natural body movement.
+
+    This prevents the previous
+    irregular movement.
+    */
 
     let bob =
-        [0, 1, 0, -1][animation];
+        animation === 1 ? 1 : 0;
+
 
     y += bob;
 
@@ -1586,16 +1241,16 @@ function drawCowboy() {
     */
 
     pixel(
-        x - 5,
+        x - 9,
         y,
-        18,
+        20,
         3,
         COLORS.groundDark
     );
 
 
     /*
-    Legs
+    LEGS
     */
 
     if (
@@ -1604,7 +1259,7 @@ function drawCowboy() {
     ) {
 
         pixel(
-            x - 4,
+            x - 5,
             y - 14,
             4,
             14,
@@ -1624,7 +1279,7 @@ function drawCowboy() {
     else {
 
         pixel(
-            x - 6,
+            x - 7,
             y - 13,
             4,
             13,
@@ -1647,9 +1302,9 @@ function drawCowboy() {
     */
 
     pixel(
-        x - 6,
-        y - 27,
-        15,
+        x - 7,
+        y - 28,
+        16,
         14,
         COLORS.dark
     );
@@ -1661,16 +1316,15 @@ function drawCowboy() {
 
     pixel(
         x - 3,
-        y - 26,
+        y - 27,
         3,
         11,
         COLORS.darker
     );
 
-
     pixel(
         x + 3,
-        y - 26,
+        y - 27,
         3,
         11,
         COLORS.darker
@@ -1682,28 +1336,31 @@ function drawCowboy() {
     */
 
     pixel(
-        x - 6,
-        y - 16,
-        15,
+        x - 7,
+        y - 17,
+        16,
         3,
         COLORS.darkest
     );
 
 
     /*
-    ARM WITH LASSO
+    ARM
+
+    Always reaches toward
+    the lasso.
     */
 
     pixel(
         x + 7,
         y - 25,
-        9,
+        10,
         3,
         COLORS.darkest
     );
 
     pixel(
-        x + 14,
+        x + 15,
         y - 27,
         3,
         5,
@@ -1716,9 +1373,9 @@ function drawCowboy() {
     */
 
     pixel(
-        x - 4,
-        y - 36,
-        10,
+        x - 5,
+        y - 37,
+        11,
         9,
         COLORS.darkest
     );
@@ -1730,7 +1387,7 @@ function drawCowboy() {
 
     pixel(
         x + 5,
-        y - 33,
+        y - 34,
         4,
         4,
         COLORS.darkest
@@ -1742,17 +1399,17 @@ function drawCowboy() {
     */
 
     pixel(
-        x - 8,
-        y - 39,
-        17,
+        x - 9,
+        y - 40,
+        18,
         4,
         COLORS.darkest
     );
 
     pixel(
-        x - 4,
-        y - 43,
-        10,
+        x - 5,
+        y - 44,
+        11,
         5,
         COLORS.darkest
     );
@@ -1763,9 +1420,9 @@ function drawCowboy() {
     */
 
     pixel(
-        x - 3,
-        y - 39,
-        8,
+        x - 4,
+        y - 40,
+        9,
         2,
         COLORS.mountainDark
     );
@@ -1773,724 +1430,24 @@ function drawCowboy() {
 }
 
 
-/*
-====================================================
-LASSO
-====================================================
-*/
-
-function drawLasso() {
-
-    if (lassoTimer <= 0) {
-
-        return;
-
-    }
-
-
-    let cowboyX =
-        cowboy.x +
-        (cowboy.lane - 1) * 24;
-
-
-    let cowboyY =
-        103;
-
-
-    /*
-    Rope gets larger
-    during swing.
-    */
-
-    let progress =
-        1 -
-        lassoTimer / 20;
-
-
-    let radius =
-        5 +
-        progress * 15;
-
-
-    let centerX =
-        cowboyX + 17;
-
-
-    let centerY =
-        cowboyY - 25;
-
-
-    /*
-    Rope from hand
-    */
-
-    pixel(
-        cowboyX + 12,
-        cowboyY - 26,
-        8,
-        1,
-        COLORS.darkest
-    );
-
-
-    /*
-    Rotating loop
-    */
-
-    let points = 20;
-
-
-    for (
-        let i = 0;
-        i < points;
-        i++
-    ) {
-
-        let angle =
-            (Math.PI * 2 / points) * i +
-            frame * 0.25;
-
-
-        let x =
-            centerX +
-            Math.cos(angle) *
-            radius;
-
-
-        let y =
-            centerY +
-            Math.sin(angle) *
-            radius *
-            0.55;
-
-
-        pixel(
-            x,
-            y,
-            2,
-            2,
-            COLORS.darkest
-        );
-
-    }
-
-}
-
-
-/*
-====================================================
-CATCH COW
-====================================================
-*/
-
-function catchCow() {
-
-    if (lassoTimer <= 0) {
-
-        return;
-
-    }
-
-
-    let bestCow = null;
-
-    let bestDistance = Infinity;
-
-
-    for (let cow of cows) {
-
-        /*
-        Only cows close enough
-        can be caught.
-        */
-
-        if (
-            cow.lane !== cowboy.lane
-        ) {
-
-            continue;
-
-        }
-
-
-        if (
-            cow.depth < 0.20 ||
-            cow.depth > 0.82
-        ) {
-
-            continue;
-
-        }
-
-
-        let distance =
-            Math.abs(
-                cow.depth - 0.58
-            );
-
-
-        if (
-            distance < bestDistance
-        ) {
-
-            bestDistance =
-                distance;
-
-            bestCow =
-                cow;
-
-        }
-
-    }
-
-
-    if (bestCow) {
-
-        let x =
-            bestCow.x;
-
-        let y =
-            getDepthY(bestCow.depth);
-
-
-        /*
-        Remove cow
-        */
-
-        cows =
-            cows.filter(
-                cow => cow !== bestCow
-            );
-
-
-        /*
-        Score
-        */
-
-        score += 10;
-
-
-        /*
-        Every 50 points:
-        new level.
-        */
-
-        level =
-            Math.floor(score / 50) + 1;
-
-
-        /*
-        Higher score = faster game.
-        */
-
-        worldSpeed =
-            0.6 +
-            level * 0.08;
-
-
-        /*
-        High score
-        */
-
-        if (
-            score > highScore
-        ) {
-
-            highScore =
-                score;
-
-            localStorage.setItem(
-                "solarRodeoHighScore",
-                highScore
-            );
-
-        }
-
-
-        /*
-        Effects
-        */
-
-        createPopup(
-            x,
-            y - 10
-        );
-
-        createCatchParticles(
-            x,
-            y
-        );
-
-        shake = 5;
-
-        catchFlash = 5;
-
-
-        updateHUD();
-
-    }
-
-}
-
-
-/*
-====================================================
-START / GAME OVER
-====================================================
-*/
-
-function startGame() {
-
-    if (gameOver) {
-
-        score = 0;
-
-        level = 1;
-
-        worldSpeed = 0.6;
-
-        cows = [];
-
-        dust = [];
-
-        particles = [];
-
-        popups = [];
-
-        spawnTimer = 40;
-
-        gameOver = false;
-
-    }
-
-
-    gameStarted = true;
-
-    updateHUD();
-
-}
-
-
-function endGame() {
-
-    gameOver = true;
-
-    shake = 8;
-
-}
-
-
-/*
-====================================================
-UPDATE
-====================================================
-*/
-
-function update() {
-
-    if (
-        !gameStarted ||
-        gameOver
-    ) {
-
-        return;
-
-    }
-
-
-    frame++;
-
-
-    /*
-    Spawn rate becomes faster
-    as level increases.
-    */
-
-    spawnTimer--;
-
-
-    if (
-        spawnTimer <= 0
-    ) {
-
-        spawnCow();
-
-
-        spawnTimer =
-            Math.max(
-                28,
-                75 - level * 5
-            );
-
-    }
-
-
-    /*
-    Lasso timer
-    */
-
-    if (
-        lassoTimer > 0
-    ) {
-
-        lassoTimer--;
-
-        catchCow();
-
-    }
-
-
-    /*
-    Update cows
-    */
-
-    updateCows();
-
-
-    /*
-    Effects
-    */
-
-    updateDust();
-
-    updateParticles();
-
-    updatePopups();
-
-
-    /*
-    Screen shake
-    */
-
-    if (
-        shake > 0
-    ) {
-
-        shake--;
-
-    }
-
-
-    /*
-    Catch flash
-    */
-
-    if (
-        catchFlash > 0
-    ) {
-
-        catchFlash--;
-
-    }
-
-}
-
-
-/*
-====================================================
-DRAW
-====================================================
-*/
-
-function draw() {
-
-    ctx.clearRect(
-        0,
-        0,
-        WIDTH,
-        HEIGHT
-    );
-
-
-    /*
-    Screen shake
-    */
-
-    ctx.save();
-
-
-    if (
-        shake > 0
-    ) {
-
-        ctx.translate(
-
-            Math.round(
-                Math.random() * 2 - 1
-            ),
-
-            Math.round(
-                Math.random() * 2 - 1
-            )
-
-        );
-
-    }
-
-
-    /*
-    WORLD
-    */
-
-    drawSky();
-
-    drawMountains();
-
-    drawGround();
-
-    drawWorldObjects();
-
-
-    /*
-    COWS
-
-    Sort by depth.
-
-    Far cows draw first.
-    Near cows draw later.
-
-    This creates proper overlap.
-    */
-
-    let sortedCows =
-        [...cows].sort(
-            (a, b) =>
-                a.depth - b.depth
-        );
-
-
-    for (
-        let cow of sortedCows
-    ) {
-
-        drawCow(cow);
-
-    }
-
-
-    /*
-    Effects
-    */
-
-    drawDust();
-
-    drawParticles();
-
-
-    /*
-    Cowboy
-    */
-
-    drawCowboy();
-
-
-    /*
-    Lasso
-    */
-
-    drawLasso();
-
-
-    /*
-    Score popups
-    */
-
-    drawPopups();
-
-
-    ctx.restore();
-
-
-    /*
-    Catch flash
-    */
-
-    if (
-        catchFlash > 0
-    ) {
-
-        ctx.fillStyle =
-            "rgba(183,192,165,0.15)";
-
-        ctx.fillRect(
-            0,
-            0,
-            WIDTH,
-            HEIGHT
-        );
-
-    }
-
-
-    /*
-    Scanlines
-
-    Gives the LCD/CRT feel.
-    */
-
-    ctx.fillStyle =
-        "rgba(37,47,39,0.08)";
-
-
-    for (
-        let y = 0;
-        y < HEIGHT;
-        y += 3
-    ) {
-
-        ctx.fillRect(
-            0,
-            y,
-            WIDTH,
-            1
-        );
-
-    }
-
-
-    /*
-    START SCREEN
-    */
+/* ==================================================
+   LASSO START
+================================================== */
+
+function throwLasso() {
 
     if (
         !gameStarted
     ) {
 
-        drawMessage(
-            "SOLAR RODEO",
-            "PRESS LASSO",
-            "TO START"
-        );
+        startGame();
+
+        return;
 
     }
 
 
-    /*
-    GAME OVER
-    */
-
     if (
-        gameOver
-    ) {
-
-        drawMessage(
-            "HERD GOT AWAY",
-            "SCORE " +
-            String(score).padStart(4, "0"),
-            "PRESS LASSO"
-        );
-
-    }
-
-}
-
-
-/*
-====================================================
-MESSAGE SCREEN
-====================================================
-*/
-
-function drawMessage(
-    line1,
-    line2,
-    line3
-) {
-
-    ctx.fillStyle =
-        "rgba(157,169,149,0.94)";
-
-    ctx.fillRect(
-        22,
-        43,
-        156,
-        55
-    );
-
-
-    ctx.strokeStyle =
-        COLORS.darkest;
-
-    ctx.lineWidth = 2;
-
-    ctx.strokeRect(
-        22,
-        43,
-        156,
-        55
-    );
-
-
-    ctx.fillStyle =
-        COLORS.darkest;
-
-    ctx.textAlign =
-        "center";
-
-
-    ctx.font =
-        "9px monospace";
-
-    ctx.fillText(
-        line1,
-        100,
-        58
-    );
-
-
-    ctx.font =
-        "6px monospace";
-
-    ctx.fillText(
-        line2,
-        100,
-        72
-    );
-
-    ctx.fillText(
-        line3,
-        100,
-        84
-    );
-
-
-    ctx.textAlign =
-        "left";
-
-}
-
-
-/*
-====================================================
-GAME LOOP
-====================================================
-*/
-
-function gameLoop() {
-
-    update();
-
-    draw();
-
-    requestAnimationFrame(
-        gameLoop
-    );
-
-}
-
-gameLoop();
-
-
-/*
-====================================================
-LASSO BUTTON
-====================================================
-*/
-
-function pressLasso() {
-
-    if (
-        !gameStarted ||
         gameOver
     ) {
 
@@ -2502,120 +1459,297 @@ function pressLasso() {
 
 
     /*
-    Don't allow constant
-    lasso spam.
+    Don't restart an existing throw.
     */
 
     if (
-        lassoTimer <= 0
+        lasso.active
     ) {
 
-        lassoTimer = 20;
-
-        catchCow();
+        return;
 
     }
+
+
+    lasso.active = true;
+
+    lasso.timer =
+        lasso.duration;
+
+    lasso.angle = 0;
+
+    lasso.radius = 2;
+
+    lasso.caughtCow = null;
 
 }
 
 
-document
-    .getElementById("lasso")
-    .addEventListener(
-        "pointerdown",
-        pressLasso
-    );
+/* ==================================================
+   UPDATE LASSO
+================================================== */
 
-
-/*
-====================================================
-LANE CONTROLS
-====================================================
-*/
-
-function moveUp() {
+function updateLasso() {
 
     if (
-        cowboy.lane > 0
+        !lasso.active
     ) {
 
-        cowboy.lane--;
+        return;
 
     }
 
-}
+
+    lasso.timer--;
 
 
-function moveDown() {
+    /*
+    Progress:
+
+    0 = beginning
+
+    1 = end
+    */
+
+    let progress =
+        1 -
+        lasso.timer /
+        lasso.duration;
+
+
+    /*
+    Lasso grows outward.
+    */
 
     if (
-        cowboy.lane < 2
+        progress < 0.5
     ) {
 
-        cowboy.lane++;
+        lasso.radius =
+            progress * 40;
+
+    }
+
+    else {
+
+        lasso.radius =
+            20;
+
+    }
+
+
+    /*
+    Rotation.
+    */
+
+    lasso.angle +=
+        0.45;
+
+
+    /*
+    Try to catch a cow
+    while the loop is fully open.
+    */
+
+    if (
+        progress > 0.25 &&
+        progress < 0.85 &&
+        !lasso.caughtCow
+    ) {
+
+        checkLassoCollision();
+
+    }
+
+
+    /*
+    End throw.
+    */
+
+    if (
+        lasso.timer <= 0
+    ) {
+
+        lasso.active = false;
+
+        lasso.radius = 0;
 
     }
 
 }
 
 
-document
-    .getElementById("up")
-    .addEventListener(
-        "pointerdown",
-        moveUp
-    );
+/* ==================================================
+   LASSO COLLISION
+================================================== */
+
+function checkLassoCollision() {
+
+    let cowboyX =
+        cowboy.x + 17;
 
 
-document
-    .getElementById("down")
-    .addEventListener(
-        "pointerdown",
-        moveDown
-    );
+    let cowboyY =
+        cowboy.y - 25;
 
 
-/*
-====================================================
-KEYBOARD
-====================================================
-*/
+    for (
+        let i = cows.length - 1;
+        i >= 0;
+        i--
+    ) {
 
-document.addEventListener(
-    "keydown",
-    function(event) {
+        let cow =
+            cows[i];
+
+
+        /*
+        Cow must be close enough.
+
+        Far-away cows cannot be caught.
+        */
 
         if (
-            event.key === "ArrowUp"
+            cow.depth < 0.22 ||
+            cow.depth > 0.85
         ) {
 
-            moveUp();
+            continue;
 
         }
 
 
+        /*
+        Cow must be in the
+        cowboy's current lane.
+
+        */
+
         if (
-            event.key === "ArrowDown"
+            cow.lane !==
+            Math.round(cowboy.lane)
         ) {
 
-            moveDown();
+            continue;
 
         }
 
 
+        let cowX =
+            cow.x;
+
+
+        let cowY =
+            getDepthY(cow.depth);
+
+
+        let distance =
+            Math.sqrt(
+
+                Math.pow(
+                    cowX - cowboyX,
+                    2
+                )
+
+                +
+
+                Math.pow(
+                    cowY - cowboyY,
+                    2
+                )
+
+            );
+
+
+        /*
+        The loop catches
+        when the cow enters it.
+        */
+
         if (
-            event.key === " " ||
-            event.key === "Enter"
+            distance <
+            lasso.radius + 8
         ) {
 
-            pressLasso();
+            catchCow(
+                cow,
+                i
+            );
+
+            break;
 
         }
 
     }
-);
 
+}
+
+
+/* ==================================================
+   CATCH COW
+================================================== */
+
+function catchCow(cow, index) {
+
+    if (
+        lasso.caughtCow
+    ) {
+
+        return;
+
+    }
+
+
+    lasso.caughtCow =
+        cow;
+
+
+    /*
+    Remove from herd.
+    */
+
+    cows.splice(
+        index,
+        1
+    );
+
+
+    /*
+    Score.
+    */
+
+    score += 10;
+
+
+    level =
+        Math.floor(
+            score / 50
+        ) + 1;
+
+
+    worldSpeed =
+        0.6 +
+        level * 0.08;
+
+
+    /*
+    High score.
+    */
+
+    if (
+        score > highScore
+    ) {
+
+        highScore =
+            score;
+
+
+        localStorage.setItem(
+            "solarRodeoHighScore",
+            highScore
+        );
+
+    }
 </script>
-
 </body>
 </html>
