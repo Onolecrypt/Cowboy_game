@@ -1,0 +1,2030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retro Solar Rodeo</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        background: radial-gradient(circle at 50% 20%, #3a2e22 0%, #1c140d 75%);
+        font-family: "Rockwell", "Roboto Slab", Georgia, serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        overflow: hidden;
+    }
+
+    .console {
+        width: 470px;
+        background: linear-gradient(180deg, #ecd9ab 0%, #dfc48c 100%);
+        border: 8px solid #b8934f;
+        border-radius: 30px;
+        padding: 18px;
+        box-shadow:
+            0 14px 0 #6e4a26,
+            0 18px 24px rgba(0,0,0,0.45),
+            inset 0 3px 0 #fbeecb;
+        position: relative;
+    }
+
+    .console::before {
+        content: "";
+        position: absolute;
+        left: 18px;
+        right: 18px;
+        top: 8px;
+        height: 6px;
+        background: repeating-linear-gradient(
+            90deg,
+            #c1502f 0 10px,
+            #3f948a 10px 20px
+        );
+        border-radius: 3px;
+        opacity: 0.85;
+    }
+
+    .brand {
+        text-align: center;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 4px;
+        color: #7a3418;
+        margin: 8px 0 10px;
+        text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+    }
+
+    .brand .sun-glyph {
+        color: #c1502f;
+        margin: 0 4px;
+    }
+
+    .solar-panel {
+        width: 100px;
+        height: 26px;
+        margin: 0 auto 12px;
+        background: repeating-linear-gradient(
+            90deg,
+            #1c2f3a 0 11px,
+            #35586a 11px 13px
+        );
+        border: 3px solid #16252d;
+        border-radius: 2px;
+        box-shadow: inset 0 4px 6px rgba(255,255,255,0.15);
+    }
+
+    .score-box {
+        display: flex;
+        justify-content: space-between;
+        background: #3f2a18;
+        color: #f0c98a;
+        padding: 7px 8px;
+        font-size: 10px;
+        letter-spacing: 0.3px;
+        border-radius: 6px 6px 0 0;
+        border: 4px solid #2a1a0d;
+        border-bottom: 0;
+    }
+
+    .screen-frame {
+        background: #2a1a0d;
+        padding: 9px;
+        border: 4px solid #1a0f07;
+        border-radius: 0 0 6px 6px;
+    }
+
+    canvas {
+        width: 100%;
+        height: auto;
+        display: block;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        background: #d8c48f;
+        border-radius: 2px;
+    }
+
+    .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+        padding: 0 8px;
+    }
+
+    button {
+        border: none;
+        font-family: "Rockwell", "Roboto Slab", Georgia, serif;
+        font-weight: bold;
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: manipulation;
+    }
+
+    .dpad {
+        display: grid;
+        grid-template-columns: 42px 42px 42px;
+        grid-template-rows: 38px 38px 38px;
+        gap: 5px;
+    }
+
+    .dpad button {
+        background: linear-gradient(180deg, #a8562f 0%, #8a3f22 100%);
+        color: #f3ddb8;
+        border: 4px solid #5c2a14;
+        border-radius: 8px;
+        font-size: 16px;
+        box-shadow: 0 5px 0 #431e0f;
+    }
+
+    .dpad button:active {
+        transform: translateY(4px);
+        box-shadow: 0 1px 0 #431e0f;
+    }
+
+    #up { grid-column: 2; grid-row: 1; }
+    #left { grid-column: 1; grid-row: 2; }
+    #right { grid-column: 3; grid-row: 2; }
+    #down { grid-column: 2; grid-row: 3; }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .lasso-button {
+        width: 92px;
+        height: 92px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #dd6a42 0%, #b3502f 55%, #8f3d24 100%);
+        color: #fff3e2;
+        border: 5px solid #3f948a;
+        box-shadow: 0 6px 0 #5c2a14, inset 0 0 0 3px #6e2f18;
+        font-size: 13px;
+        letter-spacing: 1px;
+    }
+
+    .lasso-button:active {
+        transform: translateY(5px);
+        box-shadow: 0 1px 0 #5c2a14, inset 0 0 0 3px #6e2f18;
+    }
+
+    .start-button {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: linear-gradient(180deg, #a8562f 0%, #8a3f22 100%);
+        color: #f3ddb8;
+        border: 3px solid #5c2a14;
+        box-shadow: 0 4px 0 #431e0f;
+        font-size: 8.5px;
+        letter-spacing: 0.5px;
+    }
+
+    .start-button:active {
+        transform: translateY(3px);
+        box-shadow: 0 1px 0 #431e0f;
+    }
+
+    .hint {
+        text-align: center;
+        font-size: 9.5px;
+        margin-top: 14px;
+        color: #8a6a3f;
+        letter-spacing: 1px;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="console">
+
+    <div class="brand"><span class="sun-glyph">☀</span>SOLAR RODEO<span class="sun-glyph">☀</span></div>
+
+    <div class="solar-panel"></div>
+
+    <div class="score-box">
+        <span>LVL <span id="level">1</span></span>
+        <span>SCORE <span id="score">0000</span></span>
+        <span>LIVES <span id="lives">3</span></span>
+        <span>HI <span id="highScore">0000</span></span>
+    </div>
+
+    <div class="screen-frame">
+        <canvas id="game" width="160" height="120"></canvas>
+    </div>
+
+    <!-- Real cow moo sample, CC0 / public domain — BigSoundBank.com
+         (trimmed to a single moo, embedded inline so it works offline) -->
+    <audio id="moo-audio" preload="auto" style="display:none">
+        <source src="data:audio/mpeg;base64,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" type="audio/mpeg">
+    </audio>
+
+    <div class="controls">
+
+        <div class="dpad">
+            <button id="up">▲</button>
+            <button id="left">◀</button>
+            <button id="right">▶</button>
+            <button id="down">▼</button>
+        </div>
+
+        <div class="action-buttons">
+            <button class="lasso-button" id="lasso">
+                LASSO
+            </button>
+            <button class="start-button" id="action">
+                START
+            </button>
+        </div>
+
+    </div>
+
+    <div class="hint">
+        AIM WITH D-PAD • LASSO TO CATCH • PEN THE CALF
+    </div>
+
+</div>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+ctx.imageSmoothingEnabled = false;
+
+
+// -----------------------------------
+// SOUND (synthesized, no audio files)
+// -----------------------------------
+
+let audioCtx = null;
+
+function getAudioCtx() {
+
+    try {
+
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        if (audioCtx.state === "suspended") {
+            audioCtx.resume();
+        }
+
+        return audioCtx;
+
+    } catch (error) {
+        return null;
+    }
+}
+
+function playTone(freq, duration, type, volume, delay) {
+
+    let ac = getAudioCtx();
+
+    if (!ac) {
+        return;
+    }
+
+    try {
+
+        let osc = ac.createOscillator();
+        let gain = ac.createGain();
+
+        osc.type = type || "square";
+        osc.frequency.value = freq;
+
+        osc.connect(gain);
+        gain.connect(ac.destination);
+
+        let startTime = ac.currentTime + (delay || 0);
+        let vol = volume || 0.15;
+
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(vol, startTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+        osc.start(startTime);
+        osc.stop(startTime + duration + 0.02);
+
+    } catch (error) {
+        // Audio unavailable — fail silently, gameplay unaffected.
+    }
+}
+
+function playSequence(notes) {
+    for (let n of notes) {
+        playTone(n.freq, n.duration, n.type, n.volume, n.delay);
+    }
+}
+
+function sfxThrow() {
+    playTone(220, 0.07, "square", 0.12, 0);
+}
+
+function sfxCatch() {
+    playSequence([
+        { freq: 523, duration: 0.07, type: "square", volume: 0.15, delay: 0.13 },
+        { freq: 784, duration: 0.12, type: "square", volume: 0.15, delay: 0.2 }
+    ]);
+}
+
+function sfxMoo() {
+
+    let ac = getAudioCtx();
+
+    if (!ac) {
+        return;
+    }
+
+    try {
+
+        let now = ac.currentTime + 0.22;
+        let duration = 1.0;
+
+        // Two slightly detuned sawtooths for a rougher, less "clean synth"
+        // tone, plus a sub-octave layer for body.
+
+        let osc1 = ac.createOscillator();
+        osc1.type = "sawtooth";
+
+        let osc2 = ac.createOscillator();
+        osc2.type = "sawtooth";
+        osc2.detune.value = -16;
+
+        let sub = ac.createOscillator();
+        sub.type = "sine";
+
+        // A resonant filter sweep is what actually reads as a vowel —
+        // this is the "mmm" (closed, muffled) opening into "ooo"
+        // (brighter) and closing again, which is the real shape of a moo.
+
+        let formant = ac.createBiquadFilter();
+        formant.type = "bandpass";
+        formant.Q.value = 4;
+
+        let gain = ac.createGain();
+        let subGain = ac.createGain();
+        subGain.gain.value = 0.45;
+
+        // Vibrato
+
+        let lfo = ac.createOscillator();
+        lfo.type = "sine";
+        lfo.frequency.value = 5.5;
+
+        let lfoGain = ac.createGain();
+        lfoGain.gain.value = 5;
+
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc1.frequency);
+        lfoGain.connect(osc2.frequency);
+
+        // A little low-rate tremolo for roughness/growl
+
+        let growl = ac.createOscillator();
+        growl.type = "sine";
+        growl.frequency.value = 24;
+
+        let growlGain = ac.createGain();
+        growlGain.gain.value = 0.15;
+
+        growl.connect(growlGain);
+        growlGain.connect(gain.gain);
+
+        osc1.connect(formant);
+        osc2.connect(formant);
+        formant.connect(gain);
+
+        sub.connect(subGain);
+        subGain.connect(gain);
+
+        gain.connect(ac.destination);
+
+        // Pitch: a low, slightly rising-then-falling moan
+
+        let baseFreq = 125;
+
+        osc1.frequency.setValueAtTime(baseFreq, now);
+        osc1.frequency.linearRampToValueAtTime(baseFreq * 1.15, now + 0.22);
+        osc1.frequency.linearRampToValueAtTime(baseFreq * 0.82, now + duration);
+
+        osc2.frequency.setValueAtTime(baseFreq, now);
+        osc2.frequency.linearRampToValueAtTime(baseFreq * 1.15, now + 0.22);
+        osc2.frequency.linearRampToValueAtTime(baseFreq * 0.82, now + duration);
+
+        sub.frequency.setValueAtTime(baseFreq / 2, now);
+        sub.frequency.linearRampToValueAtTime(baseFreq * 0.82 / 2, now + duration);
+
+        // Formant sweep: closed "mmm" -> open "ooo" -> closing "mmm"
+
+        formant.frequency.setValueAtTime(450, now);
+        formant.frequency.linearRampToValueAtTime(1700, now + 0.28);
+        formant.frequency.linearRampToValueAtTime(1300, now + duration * 0.6);
+        formant.frequency.linearRampToValueAtTime(400, now + duration);
+
+        // Amplitude: swells as the mouth opens, fades as it closes
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.15, now + 0.1);
+        gain.gain.linearRampToValueAtTime(0.2, now + 0.32);
+        gain.gain.linearRampToValueAtTime(0.11, now + duration * 0.75);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        osc1.start(now);
+        osc2.start(now);
+        sub.start(now);
+        lfo.start(now);
+        growl.start(now);
+
+        osc1.stop(now + duration + 0.05);
+        osc2.stop(now + duration + 0.05);
+        sub.stop(now + duration + 0.05);
+        lfo.stop(now + duration + 0.05);
+        growl.stop(now + duration + 0.05);
+
+    } catch (error) {
+        // Audio unavailable — fail silently, gameplay unaffected.
+    }
+}
+
+
+let mooAudioEl = document.getElementById("moo-audio");
+let mooAudioFailed = false;
+
+if (mooAudioEl) {
+    mooAudioEl.addEventListener("error", () => {
+        mooAudioFailed = true;
+    });
+    mooAudioEl.volume = 0.6;
+}
+
+function playRealMoo() {
+
+    if (!mooAudioEl || mooAudioFailed) {
+        sfxMoo();
+        return;
+    }
+
+    try {
+
+        mooAudioEl.currentTime = 0;
+
+        let playResult = mooAudioEl.play();
+
+        if (playResult && typeof playResult.catch === "function") {
+            playResult.catch(() => {
+                sfxMoo();
+            });
+        }
+
+    } catch (error) {
+        sfxMoo();
+    }
+}
+
+
+function sfxDeliver() {
+    playSequence([
+        { freq: 523, duration: 0.08, type: "square", volume: 0.16, delay: 0 },
+        { freq: 659, duration: 0.08, type: "square", volume: 0.16, delay: 0.08 },
+        { freq: 880, duration: 0.16, type: "square", volume: 0.16, delay: 0.16 }
+    ]);
+}
+
+function sfxHit() {
+    playSequence([
+        { freq: 180, duration: 0.14, type: "sawtooth", volume: 0.17, delay: 0 },
+        { freq: 110, duration: 0.2, type: "sawtooth", volume: 0.17, delay: 0.1 }
+    ]);
+}
+
+function sfxLevelComplete() {
+    playSequence([
+        { freq: 523, duration: 0.09, type: "square", volume: 0.15, delay: 0 },
+        { freq: 659, duration: 0.09, type: "square", volume: 0.15, delay: 0.1 },
+        { freq: 784, duration: 0.09, type: "square", volume: 0.15, delay: 0.2 },
+        { freq: 1047, duration: 0.22, type: "square", volume: 0.15, delay: 0.3 }
+    ]);
+}
+
+function sfxGameOver() {
+    playSequence([
+        { freq: 392, duration: 0.15, type: "triangle", volume: 0.16, delay: 0 },
+        { freq: 330, duration: 0.15, type: "triangle", volume: 0.16, delay: 0.15 },
+        { freq: 262, duration: 0.32, type: "triangle", volume: 0.16, delay: 0.3 }
+    ]);
+}
+
+function sfxStart() {
+    playTone(440, 0.09, "square", 0.12, 0);
+}
+
+
+// -----------------------------------
+// RETRO LCD COLORS
+// -----------------------------------
+
+const LCD = {
+    background: "#d8c48f",
+    light: "#e9dcb6",
+    mid: "#a9884f",
+    dark: "#6e4f2c",
+    darkest: "#3e2a17"
+};
+
+
+// -----------------------------------
+// FIELD BOUNDS
+// -----------------------------------
+
+const FIELD = {
+    left: 6,
+    right: 154,
+    top: 26,
+    bottom: 108
+};
+
+const PEN = {
+    x: 4,
+    y: 82,
+    width: 34,
+    height: 26
+};
+
+
+// -----------------------------------
+// GAME VARIABLES
+// -----------------------------------
+
+let score = 0;
+let highScore = 0;
+let lives = 3;
+
+let level = 1;
+let calvesSpawned = 0;
+let levelComplete = false;
+
+let gameOver = false;
+let gameStarted = false;
+
+let frame = 0;
+let shake = 0;
+
+let spawnTimer = 0;
+
+let cowboy = {
+    x: 100,
+    y: 60,
+    facing: "down",
+    carrying: null,
+    invulnerable: 0,
+    lassoTimer: 0,
+    lassoDir: { x: 0, y: 1 },
+    idleTimer: 0
+};
+
+let keys = {
+    up: false,
+    down: false,
+    left: false,
+    right: false
+};
+
+let calves = [];
+let bulls = [];
+let dust = [];
+let popups = [];
+let pennedCalves = [];
+
+
+// -----------------------------------
+// SCORE / LIVES DISPLAY
+// -----------------------------------
+
+function updateScore() {
+
+    document.getElementById("score").textContent =
+        String(score).padStart(4, "0");
+
+    document.getElementById("highScore").textContent =
+        String(highScore).padStart(4, "0");
+
+    document.getElementById("lives").textContent =
+        String(lives);
+
+    document.getElementById("level").textContent =
+        String(level);
+}
+
+updateScore();
+
+
+// -----------------------------------
+// DRAW HELPER
+// -----------------------------------
+
+function pixel(x, y, w, h, color) {
+
+    ctx.fillStyle = color;
+    ctx.fillRect(
+        Math.round(x),
+        Math.round(y),
+        Math.round(w),
+        Math.round(h)
+    );
+}
+
+
+// -----------------------------------
+// BACKGROUND (static meadow, not scrolling)
+// -----------------------------------
+
+function drawBackground() {
+
+    ctx.fillStyle = LCD.background;
+    ctx.fillRect(0, 0, 160, 120);
+
+    // Sun
+
+    pixel(126, 8, 12, 12, LCD.light);
+    pixel(123, 11, 18, 6, LCD.light);
+    pixel(128, 5, 6, 18, LCD.light);
+
+
+    // Distant mountains
+
+    pixel(10, 20, 15, 8, LCD.mid);
+    pixel(5, 24, 25, 6, LCD.mid);
+    pixel(60, 18, 15, 8, LCD.mid);
+    pixel(55, 22, 25, 6, LCD.mid);
+    pixel(115, 21, 15, 7, LCD.mid);
+    pixel(110, 25, 25, 5, LCD.mid);
+
+
+    // Ground
+
+    pixel(0, 30, 160, 90, LCD.light);
+
+
+    // Scattered cacti (decorative, non-blocking)
+
+    drawCactus(140, 40);
+    drawCactus(70, 34);
+    drawCactus(130, 96);
+
+
+    // Fence posts marking the field edge
+
+    for (let x = FIELD.left; x < FIELD.right; x += 18) {
+        pixel(x, FIELD.top - 4, 2, 6, LCD.dark);
+    }
+}
+
+
+function drawCactus(x, y) {
+
+    pixel(x, y, 4, 16, LCD.dark);
+    pixel(x - 4, y + 4, 4, 3, LCD.dark);
+    pixel(x - 4, y + 4, 3, 7, LCD.dark);
+    pixel(x + 4, y + 7, 4, 3, LCD.dark);
+    pixel(x + 5, y + 7, 3, 6, LCD.dark);
+}
+
+
+// -----------------------------------
+// HOME PEN
+// -----------------------------------
+
+function drawFencePost(px, py, h) {
+
+    // Round-log post: dark shaft with a highlight strip
+    // down one side to suggest roundness and height.
+
+    pixel(px - 1, py - h, 3, h, LCD.darkest);
+    pixel(px - 1, py - h, 1, h, LCD.mid);
+}
+
+
+function drawPen() {
+
+    let postH = 7;
+
+    // Cast shadow — grounds the pen against the field
+
+    pixel(PEN.x + 2, PEN.y + 3, PEN.width, PEN.height, "rgba(40,26,14,0.3)");
+
+    // Floor
+
+    pixel(PEN.x, PEN.y, PEN.width, PEN.height, LCD.mid);
+
+    // Worn dirt streaks for texture
+
+    pixel(PEN.x + 4, PEN.y + 8, PEN.width - 9, 1, LCD.dark);
+    pixel(PEN.x + 6, PEN.y + 17, PEN.width - 13, 1, LCD.dark);
+
+    // Top rail
+
+    pixel(PEN.x, PEN.y - 2, PEN.width, 2, LCD.darkest);
+    pixel(PEN.x, PEN.y - 2, PEN.width, 1, LCD.mid);
+
+    // Side rails
+
+    pixel(PEN.x - 1, PEN.y, 2, PEN.height, LCD.darkest);
+    pixel(PEN.x + PEN.width - 1, PEN.y, 2, PEN.height, LCD.darkest);
+
+    // Bottom rail, with a gate gap left open
+
+    let gateStart = PEN.x + PEN.width * 0.38;
+    let gateEnd = PEN.x + PEN.width * 0.62;
+
+    pixel(PEN.x, PEN.y + PEN.height, gateStart - PEN.x, 2, LCD.darkest);
+    pixel(gateEnd, PEN.y + PEN.height, PEN.x + PEN.width - gateEnd, 2, LCD.darkest);
+
+    // Posts at corners, edge midpoints, and flanking the gate
+
+    drawFencePost(PEN.x, PEN.y, postH);
+    drawFencePost(PEN.x + PEN.width, PEN.y, postH);
+    drawFencePost(PEN.x + PEN.width / 2, PEN.y, postH * 0.8);
+
+    drawFencePost(PEN.x, PEN.y + PEN.height / 2, postH * 0.7);
+    drawFencePost(PEN.x + PEN.width, PEN.y + PEN.height / 2, postH * 0.7);
+
+    drawFencePost(PEN.x, PEN.y + PEN.height, postH);
+    drawFencePost(PEN.x + PEN.width, PEN.y + PEN.height, postH);
+
+    drawFencePost(gateStart, PEN.y + PEN.height, postH * 0.85);
+    drawFencePost(gateEnd, PEN.y + PEN.height, postH * 0.85);
+}
+
+
+function isInPen(x, y) {
+
+    return (
+        x > PEN.x &&
+        x < PEN.x + PEN.width &&
+        y > PEN.y &&
+        y < PEN.y + PEN.height
+    );
+}
+
+
+function keepOutsidePen(x, y, margin) {
+
+    // Pushes a point back to the nearest edge outside the pen
+    // (plus a margin for the fence itself), so entities that
+    // shouldn't enter the pen can approach the fence line but
+    // never overlap it.
+
+    let left = PEN.x - margin;
+    let right = PEN.x + PEN.width + margin;
+    let top = PEN.y - margin;
+    let bottom = PEN.y + PEN.height + margin;
+
+    if (x <= left || x >= right || y <= top || y >= bottom) {
+        return { x: x, y: y };
+    }
+
+    let distLeft = x - left;
+    let distRight = right - x;
+    let distTop = y - top;
+    let distBottom = bottom - y;
+
+    let minDist = Math.min(distLeft, distRight, distTop, distBottom);
+
+    if (minDist === distLeft) {
+        return { x: left, y: y };
+    } else if (minDist === distRight) {
+        return { x: right, y: y };
+    } else if (minDist === distTop) {
+        return { x: x, y: top };
+    } else {
+        return { x: x, y: bottom };
+    }
+}
+
+
+function drawPennedCalves() {
+
+    for (let pc of pennedCalves) {
+
+        let animFrame = Math.floor(frame / 12 + pc.animOffset) % 4;
+
+        drawAnimal(pc.x, pc.y, 0.55, animFrame, LCD.dark, "down");
+    }
+}
+
+
+// -----------------------------------
+// LASSO THROW ANIMATION
+// -----------------------------------
+
+function drawLasso() {
+
+    if (cowboy.lassoTimer <= 0) {
+        return;
+    }
+
+    let elapsed = 1 - cowboy.lassoTimer / 14;
+    let dir = cowboy.lassoDir;
+
+    let reach = 20;
+    let loopDist = 6 + elapsed * (reach - 6);
+
+    let loopX = cowboy.x + dir.x * loopDist;
+    let loopY = cowboy.y + dir.y * loopDist;
+
+    // Rope line from cowboy to the loop
+
+    if (dir.x !== 0) {
+
+        let ropeLen = Math.abs(loopX - cowboy.x);
+        let ropeX = dir.x > 0 ? cowboy.x : loopX;
+
+        pixel(ropeX, cowboy.y - 1, ropeLen, 1, LCD.darkest);
+
+    } else {
+
+        let ropeLen = Math.abs(loopY - cowboy.y);
+        let ropeY = dir.y > 0 ? cowboy.y : loopY;
+
+        pixel(cowboy.x - 1, ropeY, 1, ropeLen, LCD.darkest);
+    }
+
+    // Spinning loop at the end of the rope
+
+    let points = 10;
+    let radius = 3 + elapsed * 2;
+
+    for (let i = 0; i < points; i++) {
+
+        let angle = (Math.PI * 2 / points) * i + frame * 0.3;
+
+        let px = loopX + Math.cos(angle) * radius;
+        let py = loopY + Math.sin(angle) * radius;
+
+        pixel(px, py, 1, 1, LCD.darkest);
+    }
+}
+
+
+// -----------------------------------
+// COWBOY
+// -----------------------------------
+
+function drawCowboy() {
+
+    if (cowboy.invulnerable > 0 && Math.floor(frame / 4) % 2 === 0) {
+        return;
+    }
+
+    let animation = Math.floor(frame / 5) % 4;
+    let bob = [0, 1, 0, -1][animation];
+
+    ctx.save();
+    ctx.translate(cowboy.x, cowboy.y + bob);
+
+    if (cowboy.facing === "left" || cowboy.facing === "right") {
+
+        if (cowboy.facing === "left") {
+            ctx.scale(-1, 1);
+        }
+
+        // Legs
+
+        if (animation === 0 || animation === 2) {
+            pixel(-4, 6, 2, 7, LCD.darkest);
+            pixel(0, 7, 2, 6, LCD.darkest);
+        } else {
+            pixel(-5, 7, 2, 6, LCD.darkest);
+            pixel(0, 6, 2, 7, LCD.darkest);
+        }
+
+        // Body
+
+        pixel(-4, 0, 7, 8, LCD.dark);
+
+        // Belt
+
+        pixel(-4, 5, 7, 2, LCD.darkest);
+
+        // Arm
+
+        pixel(2, 1, 5, 2, LCD.darkest);
+        pixel(6, 0, 2, 3, LCD.darkest);
+
+        // Head
+
+        pixel(-3, -5, 6, 6, LCD.darkest);
+
+        // Nose
+
+        pixel(3, -3, 3, 3, LCD.darkest);
+
+        // Hat
+
+        pixel(-5, -7, 11, 3, LCD.darkest);
+        pixel(-2, -10, 6, 3, LCD.darkest);
+        pixel(-1, -9, 4, 1, LCD.mid);
+
+    } else {
+
+        // Facing the viewer (down) or away (up) — symmetric pose.
+
+        let faceVisible = cowboy.facing === "down";
+
+        // Legs
+
+        if (animation === 0 || animation === 2) {
+            pixel(-3, 6, 2, 7, LCD.darkest);
+            pixel(1, 7, 2, 6, LCD.darkest);
+        } else {
+            pixel(-3, 7, 2, 6, LCD.darkest);
+            pixel(1, 6, 2, 7, LCD.darkest);
+        }
+
+        // Body
+
+        pixel(-3, 0, 7, 8, LCD.dark);
+
+        // Belt
+
+        pixel(-3, 5, 7, 2, LCD.darkest);
+
+        // Arms at sides
+
+        pixel(-6, 1, 3, 2, LCD.darkest);
+        pixel(3, 1, 3, 2, LCD.darkest);
+
+        // Head
+
+        pixel(-3, -5, 6, 6, LCD.darkest);
+
+        if (faceVisible) {
+
+            // Eyes
+
+            pixel(-2, -3, 1, 1, LCD.light);
+            pixel(1, -3, 1, 1, LCD.light);
+        }
+
+        // Hat
+
+        pixel(-5, -7, 11, 3, LCD.darkest);
+        pixel(-3, -10, 6, 3, LCD.darkest);
+        pixel(-2, -9, 4, 1, LCD.mid);
+    }
+
+    ctx.restore();
+}
+
+
+// -----------------------------------
+// CALF / BULL SPRITE (shared, scaled)
+// -----------------------------------
+
+function drawAnimal(x, y, scale, animFrame, bodyColor, facing) {
+
+    let bob = [0, 1, 0, -1][animFrame];
+
+    ctx.save();
+    ctx.translate(x, y + bob);
+
+    if (facing === "left" || facing === "right") {
+
+        // Base artwork faces left (head on the left side), so mirror
+        // it when the animal is actually moving/facing right.
+
+        if (facing === "right") {
+            ctx.scale(-1, 1);
+        }
+
+        ctx.scale(scale, scale);
+
+        // Legs
+
+        if (animFrame === 0) {
+            pixel(1, 6, 3, 8, bodyColor);
+            pixel(8, 7, 3, 7, bodyColor);
+        } else if (animFrame === 1) {
+            pixel(0, 7, 3, 7, bodyColor);
+            pixel(9, 5, 3, 9, bodyColor);
+        } else if (animFrame === 2) {
+            pixel(2, 7, 3, 7, bodyColor);
+            pixel(8, 6, 3, 8, bodyColor);
+        } else {
+            pixel(0, 5, 3, 9, bodyColor);
+            pixel(9, 7, 3, 7, bodyColor);
+        }
+
+        // Body
+
+        pixel(0, 0, 12, 9, bodyColor);
+        pixel(2, -1, 8, 2, bodyColor);
+
+        // Head
+
+        pixel(-4, 0, 6, 8, LCD.darkest);
+        pixel(-7, 3, 4, 4, LCD.darkest);
+
+        // Ear
+
+        pixel(-3, -2, 4, 3, bodyColor);
+
+        // Horns
+
+        pixel(-5, -2, 2, 3, LCD.darkest);
+        pixel(-2, -3, 2, 2, LCD.darkest);
+
+        // Eye
+
+        pixel(-3, 2, 1, 1, LCD.light);
+
+        // Tail
+
+        pixel(12, 0, 2, 6, LCD.darkest);
+        pixel(13, 5, 3, 2, LCD.darkest);
+
+    } else {
+
+        // Facing the viewer (down) or away (up) — symmetric pose.
+
+        ctx.scale(scale, scale);
+
+        let faceVisible = facing === "down";
+
+        // Legs (front or hind pair, close together)
+
+        if (animFrame === 0 || animFrame === 2) {
+            pixel(-4, 7, 3, 7, bodyColor);
+            pixel(2, 8, 3, 6, bodyColor);
+        } else {
+            pixel(-4, 8, 3, 6, bodyColor);
+            pixel(2, 7, 3, 7, bodyColor);
+        }
+
+        // Body
+
+        pixel(-6, 0, 12, 9, bodyColor);
+        pixel(-4, -1, 8, 2, bodyColor);
+
+        // Head
+
+        pixel(-3, -4, 6, 6, LCD.darkest);
+
+        if (faceVisible) {
+
+            // Horns
+
+            pixel(-4, -6, 2, 2, LCD.darkest);
+            pixel(2, -6, 2, 2, LCD.darkest);
+
+            // Eyes
+
+            pixel(-2, -2, 1, 1, LCD.light);
+            pixel(1, -2, 1, 1, LCD.light);
+
+        } else {
+
+            // Ears peeking from behind
+
+            pixel(-4, -5, 2, 2, bodyColor);
+            pixel(2, -5, 2, 2, bodyColor);
+
+            // Tail hanging down the back
+
+            pixel(-1, -2, 2, 7, LCD.darkest);
+        }
+    }
+
+    ctx.restore();
+}
+
+
+function drawCalf(calf) {
+
+    let animFrame = Math.floor(frame / 6 + calf.animOffset) % 4;
+
+    drawAnimal(calf.x, calf.y, 0.85, animFrame, LCD.dark, calf.facing);
+}
+
+
+function drawBull(bull) {
+
+    let animFrame = Math.floor(frame / 4 + bull.animOffset) % 4;
+
+    let dist = Math.hypot(bull.x - cowboy.x, bull.y - cowboy.y);
+    let proximity = 1 - Math.max(0, Math.min(1, dist / 70));
+    let scale = 1.1 + proximity * 0.5;
+
+    drawAnimal(bull.x, bull.y, scale, animFrame, LCD.darkest, bull.facing);
+
+    // Dust kicked up when charging, to sell the approach
+
+    if (bull.state === "charge" && frame % 4 === 0) {
+        createDust(bull.x + 8, bull.y + 10);
+    }
+}
+
+
+// -----------------------------------
+// DIFFICULTY BY LEVEL
+// -----------------------------------
+
+function levelCalfTotal(lvl) {
+    return 4 + lvl * 2;
+}
+
+
+// -----------------------------------
+// SPAWN CALF
+// -----------------------------------
+
+function spawnCalf() {
+
+    let x = FIELD.left + 30 + Math.random() * (FIELD.right - FIELD.left - 40);
+    let y = FIELD.top + Math.random() * (FIELD.bottom - FIELD.top);
+
+    calves.push({
+        x: x,
+        y: y,
+        vx: 0,
+        vy: 0,
+        facing: "down",
+        wanderTimer: 0,
+        animOffset: Math.random() * 4,
+        carried: false,
+        spookedTimer: 0,
+        spookedBull: null
+    });
+}
+
+
+function spawnBull() {
+
+    // Spawn at whichever corner is farthest from the cowboy,
+    // so it starts as a distant threat rather than on top of you.
+
+    let corners = [
+        { x: FIELD.left, y: FIELD.top },
+        { x: FIELD.right, y: FIELD.top },
+        { x: FIELD.left, y: FIELD.bottom },
+        { x: FIELD.right, y: FIELD.bottom }
+    ];
+
+    let best = corners[0];
+    let bestDist = -1;
+
+    for (let c of corners) {
+
+        let d = Math.hypot(c.x - cowboy.x, c.y - cowboy.y);
+
+        if (d > bestDist) {
+            bestDist = d;
+            best = c;
+        }
+    }
+
+    best = keepOutsidePen(best.x, best.y, 3);
+
+    bulls.push({
+        x: best.x,
+        y: best.y,
+        vx: 0,
+        vy: 0,
+        facing: "down",
+        state: "wander",
+        stateTimer: 60 + Math.random() * 40,
+        animOffset: Math.random() * 4
+    });
+}
+
+
+// -----------------------------------
+// DUST
+// -----------------------------------
+
+function createDust(x, y) {
+
+    for (let i = 0; i < 2; i++) {
+
+        dust.push({
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 0.6,
+            vy: (Math.random() - 0.5) * 0.6,
+            life: 15
+        });
+    }
+}
+
+
+function updateDust() {
+
+    for (let i = dust.length - 1; i >= 0; i--) {
+
+        let p = dust[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+
+        if (p.life <= 0) {
+            dust.splice(i, 1);
+        }
+    }
+}
+
+
+function drawDust() {
+
+    for (let p of dust) {
+        pixel(p.x, p.y, 2, 1, LCD.mid);
+    }
+}
+
+
+// -----------------------------------
+// POPUPS
+// -----------------------------------
+
+function createPopup(x, y, text) {
+
+    popups.push({ x: x, y: y, life: 25, text: text });
+}
+
+
+function updatePopups() {
+
+    for (let i = popups.length - 1; i >= 0; i--) {
+
+        popups[i].y -= 0.4;
+        popups[i].life--;
+
+        if (popups[i].life <= 0) {
+            popups.splice(i, 1);
+        }
+    }
+}
+
+
+function drawPopups() {
+
+    for (let p of popups) {
+
+        ctx.fillStyle = LCD.darkest;
+        ctx.font = "5px monospace";
+        ctx.fillText(p.text, p.x, p.y);
+    }
+}
+
+
+// -----------------------------------
+// GAME OVER
+// -----------------------------------
+
+function endGame() {
+    gameOver = true;
+    sfxGameOver();
+}
+
+
+// -----------------------------------
+// LASSO THROW
+// -----------------------------------
+
+function attemptLasso() {
+
+    if (!gameStarted || gameOver || levelComplete) {
+        return;
+    }
+
+    let dir = { x: 0, y: 0 };
+
+    if (cowboy.facing === "left") dir = { x: -1, y: 0 };
+    else if (cowboy.facing === "right") dir = { x: 1, y: 0 };
+    else if (cowboy.facing === "up") dir = { x: 0, y: -1 };
+    else dir = { x: 0, y: 1 };
+
+    cowboy.lassoDir = dir;
+    cowboy.lassoTimer = 14;
+
+    sfxThrow();
+
+    if (cowboy.carrying) {
+        return;
+    }
+
+    let throwRange = 24;
+    let bestCalf = null;
+    let bestDist = throwRange;
+
+    for (let calf of calves) {
+
+        if (calf.carried) {
+            continue;
+        }
+
+        let dx = calf.x - cowboy.x;
+        let dy = calf.y - cowboy.y;
+        let dist = Math.hypot(dx, dy);
+
+        if (dist > throwRange || dist === 0) {
+            continue;
+        }
+
+        // Must be roughly in the direction the cowboy is facing
+        // (a forward cone, not a full circle) for the throw to land.
+
+        let dot = (dx * dir.x + dy * dir.y) / dist;
+
+        if (dot > 0.35 && dist < bestDist) {
+            bestDist = dist;
+            bestCalf = calf;
+        }
+    }
+
+    if (bestCalf) {
+        bestCalf.carried = true;
+        cowboy.carrying = bestCalf;
+        createDust(bestCalf.x, bestCalf.y + 6);
+        sfxCatch();
+        playRealMoo();
+    }
+}
+
+
+// -----------------------------------
+// UPDATE
+// -----------------------------------
+
+function update() {
+
+    if (!gameStarted || gameOver || levelComplete) {
+        return;
+    }
+
+    frame++;
+
+
+    // ---- Cowboy movement ----
+
+    let dx = 0;
+    let dy = 0;
+
+    if (keys.up) dy -= 1;
+    if (keys.down) dy += 1;
+    if (keys.left) dx -= 1;
+    if (keys.right) dx += 1;
+
+    if (dx !== 0) {
+        cowboy.facing = dx > 0 ? "right" : "left";
+    } else if (dy !== 0) {
+        cowboy.facing = dy > 0 ? "down" : "up";
+    }
+
+    if (dx === 0 && dy === 0) {
+        cowboy.idleTimer++;
+    } else {
+        cowboy.idleTimer = 0;
+    }
+
+    if (dx !== 0 && dy !== 0) {
+        dx *= 0.7071;
+        dy *= 0.7071;
+    }
+
+    let speed = cowboy.carrying ? 0.55 : 0.75;
+
+    cowboy.x += dx * speed;
+    cowboy.y += dy * speed;
+
+    cowboy.x = Math.max(FIELD.left, Math.min(FIELD.right, cowboy.x));
+    cowboy.y = Math.max(FIELD.top, Math.min(FIELD.bottom, cowboy.y));
+
+    if (cowboy.invulnerable > 0) {
+        cowboy.invulnerable--;
+    }
+
+    if (cowboy.lassoTimer > 0) {
+        cowboy.lassoTimer--;
+    }
+
+    // After 5 seconds without moving (e.g. cornered by a bull),
+    // nearby bulls back off to give the cowboy room.
+
+    if (cowboy.idleTimer === 300) {
+
+        for (let bull of bulls) {
+
+            let d = Math.hypot(bull.x - cowboy.x, bull.y - cowboy.y);
+
+            if (d < 35) {
+                bull.state = "retreat";
+                bull.stateTimer = 60;
+            }
+        }
+    }
+
+
+    // ---- Spawn calves (capped to this level's total) ----
+
+    spawnTimer--;
+
+    if (spawnTimer <= 0 && calvesSpawned < levelCalfTotal(level)) {
+
+        let looseCalves = calves.filter(c => !c.carried).length;
+
+        if (looseCalves < 3) {
+            spawnCalf();
+            calvesSpawned++;
+        }
+
+        spawnTimer = Math.max(50, 110 - score * 0.6);
+    }
+
+
+    // ---- Bulls ----
+
+    if (bulls.length === 0) {
+        spawnBull();
+    }
+
+    if (level >= 2 && bulls.length < 2) {
+        spawnBull();
+    }
+
+    for (let bull of bulls) {
+
+        let toX = cowboy.x - bull.x;
+        let toY = cowboy.y - bull.y;
+        let dist = Math.hypot(toX, toY) || 1;
+
+        let detectionRadius = 55;
+
+        bull.stateTimer--;
+
+        if (bull.state === "retreat") {
+
+            // Backing off to give the cowboy room after being
+            // cornered too long.
+
+            let awayX = bull.x - cowboy.x;
+            let awayY = bull.y - cowboy.y;
+            let awayDist = Math.hypot(awayX, awayY) || 1;
+            let retreatSpeed = 0.4;
+
+            bull.x += (awayX / awayDist) * retreatSpeed;
+            bull.y += (awayY / awayDist) * retreatSpeed;
+
+            if (Math.abs(awayX) > Math.abs(awayY)) {
+                bull.facing = awayX > 0 ? "right" : "left";
+            } else {
+                bull.facing = awayY > 0 ? "down" : "up";
+            }
+
+            if (bull.stateTimer <= 0) {
+                bull.state = "wander";
+                bull.stateTimer = 70 + Math.random() * 50;
+            }
+
+        } else if (bull.state === "wander") {
+
+            if (dist < detectionRadius && bull.stateTimer <= 0) {
+
+                bull.state = "charge";
+                bull.stateTimer = 55 + Math.random() * 20;
+
+            } else if (bull.stateTimer <= 0) {
+
+                let angle = Math.random() * Math.PI * 2;
+
+                bull.vx = Math.cos(angle) * 0.2;
+                bull.vy = Math.sin(angle) * 0.2;
+                bull.stateTimer = 50 + Math.random() * 50;
+
+                if (Math.abs(bull.vx) > Math.abs(bull.vy)) {
+                    bull.facing = bull.vx > 0 ? "right" : "left";
+                } else {
+                    bull.facing = bull.vy > 0 ? "down" : "up";
+                }
+            }
+
+            bull.x += bull.vx;
+            bull.y += bull.vy;
+
+        } else {
+
+            // Charging: home toward the cowboy at higher speed.
+
+            let chargeSpeed = 0.55 + score * 0.006;
+
+            bull.x += (toX / dist) * chargeSpeed;
+            bull.y += (toY / dist) * chargeSpeed;
+
+            if (Math.abs(toX) > Math.abs(toY)) {
+                bull.facing = toX > 0 ? "right" : "left";
+            } else {
+                bull.facing = toY > 0 ? "down" : "up";
+            }
+
+            if (bull.stateTimer <= 0) {
+
+                bull.state = "wander";
+                bull.stateTimer = 70 + Math.random() * 50;
+            }
+        }
+
+        bull.x = Math.max(FIELD.left, Math.min(FIELD.right, bull.x));
+        bull.y = Math.max(FIELD.top, Math.min(FIELD.bottom, bull.y));
+
+        let bullClear = keepOutsidePen(bull.x, bull.y, 3);
+        bull.x = bullClear.x;
+        bull.y = bullClear.y;
+
+        // Bull hits cowboy (the pen is safe ground)
+
+        if (
+            cowboy.invulnerable <= 0 &&
+            dist < 9 &&
+            !isInPen(cowboy.x, cowboy.y)
+        ) {
+
+            if (cowboy.carrying) {
+
+                cowboy.carrying.carried = false;
+                cowboy.carrying.wanderTimer = 0;
+                cowboy.carrying.spookedBull = bull;
+                cowboy.carrying.spookedTimer = 70;
+                cowboy.carrying = null;
+            }
+
+            lives--;
+            cowboy.invulnerable = 90;
+            shake = 8;
+
+            sfxHit();
+
+            bull.state = "wander";
+            bull.stateTimer = 80;
+
+            updateScore();
+
+            if (lives <= 0) {
+                endGame();
+            }
+        }
+    }
+
+
+    // ---- Calves ----
+
+    for (let calf of calves) {
+
+        if (calf.carried) {
+
+            let dir = { x: 0, y: 0 };
+
+            if (cowboy.facing === "left") dir = { x: -1, y: 0 };
+            else if (cowboy.facing === "right") dir = { x: 1, y: 0 };
+            else if (cowboy.facing === "up") dir = { x: 0, y: -1 };
+            else dir = { x: 0, y: 1 };
+
+            calf.x = cowboy.x - dir.x * 10;
+            calf.y = cowboy.y - dir.y * 10;
+            calf.facing = cowboy.facing;
+            continue;
+        }
+
+        calf.wanderTimer--;
+
+        // ---- Freshly dropped: sticks near the bull briefly, spooked ----
+
+        if (calf.spookedTimer > 0 && calf.spookedBull) {
+
+            calf.spookedTimer--;
+
+            let bull = calf.spookedBull;
+            let toBullX = bull.x - calf.x;
+            let toBullY = bull.y - calf.y;
+            let distToBull = Math.hypot(toBullX, toBullY) || 1;
+
+            let trailDist = 11;
+
+            if (distToBull > trailDist) {
+                calf.vx = (toBullX / distToBull) * 0.35;
+                calf.vy = (toBullY / distToBull) * 0.35;
+            } else {
+                calf.vx = 0;
+                calf.vy = 0;
+            }
+
+            if (Math.abs(calf.vx) > Math.abs(calf.vy)) {
+                calf.facing = calf.vx > 0 ? "right" : "left";
+            } else if (calf.vy !== 0) {
+                calf.facing = calf.vy > 0 ? "down" : "up";
+            }
+
+            if (calf.spookedTimer <= 0) {
+                calf.spookedBull = null;
+                calf.wanderTimer = 0;
+            }
+
+            calf.x += calf.vx;
+            calf.y += calf.vy;
+
+            calf.x = Math.max(FIELD.left, Math.min(FIELD.right, calf.x));
+            calf.y = Math.max(FIELD.top, Math.min(FIELD.bottom, calf.y));
+
+            continue;
+        }
+
+        let toCalfX = calf.x - cowboy.x;
+        let toCalfY = calf.y - cowboy.y;
+        let distToCowboy = Math.hypot(toCalfX, toCalfY) || 1;
+
+        let fleeRadius = 38;
+
+        if (cowboy.carrying && distToCowboy < fleeRadius) {
+
+            // Spook and run directly away from the cowboy.
+
+            calf.vx = (toCalfX / distToCowboy) * 0.55;
+            calf.vy = (toCalfY / distToCowboy) * 0.55;
+            calf.wanderTimer = 15;
+
+            if (Math.abs(calf.vx) > Math.abs(calf.vy)) {
+                calf.facing = calf.vx > 0 ? "right" : "left";
+            } else {
+                calf.facing = calf.vy > 0 ? "down" : "up";
+            }
+
+        } else if (calf.wanderTimer <= 0) {
+
+            let angle = Math.random() * Math.PI * 2;
+
+            calf.vx = Math.cos(angle) * 0.25;
+            calf.vy = Math.sin(angle) * 0.25;
+            calf.wanderTimer = 50 + Math.random() * 60;
+
+            if (Math.abs(calf.vx) > Math.abs(calf.vy)) {
+                calf.facing = calf.vx > 0 ? "right" : "left";
+            } else {
+                calf.facing = calf.vy > 0 ? "down" : "up";
+            }
+        }
+
+        calf.x += calf.vx;
+        calf.y += calf.vy;
+
+        calf.x = Math.max(FIELD.left, Math.min(FIELD.right, calf.x));
+        calf.y = Math.max(FIELD.top, Math.min(FIELD.bottom, calf.y));
+    }
+
+
+    // ---- Delivery ----
+
+    if (cowboy.carrying && isInPen(cowboy.x, cowboy.y)) {
+
+        score += 10;
+
+        if (score > highScore) {
+            highScore = score;
+        }
+
+        createPopup(cowboy.x, cowboy.y - 8, "+10");
+        createDust(cowboy.x, cowboy.y + 4);
+        sfxDeliver();
+
+        let delivered = cowboy.carrying;
+
+        calves = calves.filter(c => c !== delivered);
+
+        let slot = pennedCalves.length;
+        let cols = 4;
+        let col = slot % cols;
+        let row = Math.floor(slot / cols) % 3;
+
+        pennedCalves.push({
+            x: PEN.x + 6 + col * 7,
+            y: PEN.y + 6 + row * 7,
+            animOffset: Math.random() * 4
+        });
+
+        cowboy.carrying = null;
+
+        shake = 4;
+
+        updateScore();
+    }
+
+
+    // ---- Win condition: all of this level's calves are home ----
+
+    if (
+        calvesSpawned >= levelCalfTotal(level) &&
+        calves.length === 0 &&
+        !levelComplete
+    ) {
+        levelComplete = true;
+        sfxLevelComplete();
+    }
+
+
+    updateDust();
+    updatePopups();
+
+    if (shake > 0) {
+        shake--;
+    }
+}
+
+
+// -----------------------------------
+// DRAW
+// -----------------------------------
+
+function draw() {
+
+    ctx.save();
+
+    if (shake > 0) {
+        ctx.translate(
+            Math.random() * 2 - 1,
+            Math.random() * 2 - 1
+        );
+    }
+
+    drawBackground();
+    drawPen();
+    drawPennedCalves();
+    drawDust();
+
+    for (let calf of calves) {
+        if (!calf.carried) {
+            drawCalf(calf);
+        }
+    }
+
+    for (let bull of bulls) {
+        drawBull(bull);
+    }
+
+    drawCowboy();
+    drawLasso();
+
+    if (cowboy.carrying) {
+        drawCalf(cowboy.carrying);
+    }
+
+    drawPopups();
+
+    ctx.restore();
+
+
+    // ---- Start screen ----
+
+    if (!gameStarted) {
+
+        ctx.fillStyle = LCD.background;
+        ctx.fillRect(18, 30, 124, 56);
+
+        ctx.strokeStyle = LCD.darkest;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(18, 30, 124, 56);
+
+        ctx.fillStyle = LCD.darkest;
+        ctx.font = "9px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("SOLAR RODEO", 80, 45);
+
+        ctx.font = "6px monospace";
+        ctx.fillText("HERD CALVES HOME", 80, 58);
+        ctx.fillText("PRESS START", 80, 68);
+        ctx.fillText("TO BEGIN", 80, 77);
+
+        ctx.textAlign = "left";
+    }
+
+
+    // ---- Game over ----
+
+    if (gameOver) {
+
+        ctx.fillStyle = LCD.background;
+        ctx.fillRect(16, 30, 128, 58);
+
+        ctx.strokeStyle = LCD.darkest;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(16, 30, 128, 58);
+
+        ctx.fillStyle = LCD.darkest;
+        ctx.font = "10px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("GAME OVER", 80, 46);
+
+        ctx.font = "6px monospace";
+        ctx.fillText(
+            "SCORE " + String(score).padStart(4, "0"),
+            80,
+            58
+        );
+        ctx.fillText("PRESS START", 80, 70);
+        ctx.fillText("TO RIDE AGAIN", 80, 79);
+
+        ctx.textAlign = "left";
+    }
+
+
+    // ---- Level complete ----
+
+    if (levelComplete) {
+
+        ctx.fillStyle = LCD.background;
+        ctx.fillRect(16, 30, 128, 58);
+
+        ctx.strokeStyle = LCD.darkest;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(16, 30, 128, 58);
+
+        ctx.fillStyle = LCD.darkest;
+        ctx.font = "9px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("RODEO WINS!", 80, 46);
+
+        ctx.font = "6px monospace";
+        ctx.fillText("LEVEL " + level + " CLEAR", 80, 58);
+        ctx.fillText("PRESS START", 80, 70);
+        ctx.fillText("FOR LEVEL " + (level + 1), 80, 79);
+
+        ctx.textAlign = "left";
+    }
+
+
+    // ---- Scanlines ----
+
+    ctx.fillStyle = "rgba(62,42,23,0.08)";
+
+    for (let y = 0; y < 120; y += 2) {
+        ctx.fillRect(0, y, 160, 1);
+    }
+}
+
+
+// -----------------------------------
+// MAIN LOOP
+// -----------------------------------
+
+function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+
+
+// -----------------------------------
+// START / RESTART
+// -----------------------------------
+
+function pressAction() {
+
+    sfxStart();
+
+    if (gameOver) {
+
+        score = 0;
+        lives = 3;
+        level = 1;
+        calvesSpawned = 0;
+        levelComplete = false;
+
+        calves = [];
+        bulls = [];
+        dust = [];
+        popups = [];
+        pennedCalves = [];
+
+        cowboy.x = 100;
+        cowboy.y = 60;
+        cowboy.carrying = null;
+        cowboy.invulnerable = 0;
+        cowboy.lassoTimer = 0;
+        cowboy.idleTimer = 0;
+
+        spawnTimer = 20;
+
+        gameOver = false;
+        gameStarted = true;
+
+        updateScore();
+
+        return;
+    }
+
+    if (levelComplete) {
+
+        level++;
+        calvesSpawned = 0;
+        levelComplete = false;
+
+        calves = [];
+        bulls = [];
+        dust = [];
+        popups = [];
+        pennedCalves = [];
+
+        cowboy.x = 100;
+        cowboy.y = 60;
+        cowboy.carrying = null;
+        cowboy.invulnerable = 0;
+        cowboy.lassoTimer = 0;
+        cowboy.idleTimer = 0;
+
+        spawnTimer = 20;
+
+        updateScore();
+
+        return;
+    }
+
+    if (!gameStarted) {
+
+        gameStarted = true;
+        spawnTimer = 20;
+
+        return;
+    }
+}
+
+
+// -----------------------------------
+// BUTTONS
+// -----------------------------------
+
+document.getElementById("action")
+    .addEventListener("pointerdown", pressAction);
+
+document.getElementById("lasso")
+    .addEventListener("pointerdown", attemptLasso);
+
+
+function bindHold(id, key) {
+
+    let el = document.getElementById(id);
+
+    el.addEventListener("pointerdown", () => { keys[key] = true; });
+    el.addEventListener("pointerup", () => { keys[key] = false; });
+    el.addEventListener("pointerleave", () => { keys[key] = false; });
+    el.addEventListener("pointercancel", () => { keys[key] = false; });
+}
+
+bindHold("up", "up");
+bindHold("down", "down");
+bindHold("left", "left");
+bindHold("right", "right");
+
+
+// -----------------------------------
+// KEYBOARD
+// -----------------------------------
+
+document.addEventListener("keydown", function(event) {
+
+    if (event.key === "ArrowUp") keys.up = true;
+    if (event.key === "ArrowDown") keys.down = true;
+    if (event.key === "ArrowLeft") keys.left = true;
+    if (event.key === "ArrowRight") keys.right = true;
+
+    if (event.key === " ") {
+        event.preventDefault();
+        attemptLasso();
+    }
+
+    if (event.key === "Enter") {
+        pressAction();
+    }
+});
+
+document.addEventListener("keyup", function(event) {
+
+    if (event.key === "ArrowUp") keys.up = false;
+    if (event.key === "ArrowDown") keys.down = false;
+    if (event.key === "ArrowLeft") keys.left = false;
+    if (event.key === "ArrowRight") keys.right = false;
+});
+
+</script>
+
+</body>
+</html>
